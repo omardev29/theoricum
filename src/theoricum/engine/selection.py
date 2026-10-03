@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from theoricum.models import AnswerEvent, Question
 
-MASTERED_STREAK = 3  # consecutive correct answers needed to leave the review pool
+MASTERED_STREAK = 3  # consecutive correct answers to count a question as mastered (stats)
 
 
 @dataclass(frozen=True, slots=True)
@@ -18,7 +18,8 @@ class QuestionStats:
 
     @property
     def in_review(self) -> bool:
-        return self.fails > 0 and self.streak < MASTERED_STREAK
+        """Pending review: the last attempt was a failure. Answering it right clears it."""
+        return self.fails > 0 and self.streak == 0
 
     @property
     def mastered(self) -> bool:
@@ -43,8 +44,8 @@ def question_stats(
 
 
 def review_weight(stats: QuestionStats) -> float:
-    """More weight to questions failed often and not yet re-learned."""
-    return (1 + stats.fails) / (1 + stats.streak) ** 2
+    """More weight to the questions failed more often."""
+    return float(1 + stats.fails)
 
 
 def filter_topic(pool: Sequence[Question], topic: str | None) -> list[Question]:

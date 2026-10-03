@@ -10,8 +10,8 @@ import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from pathlib import Path
-from urllib.parse import urljoin
+from pathlib import Path, PurePosixPath
+from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup, Tag
 
@@ -64,6 +64,11 @@ class FetchReport:
     warnings: list[str] = field(default_factory=list)
     pack_path: Path | None = None
     total_questions: int = 0
+
+
+def url_suffix(url: str, default: str = ".jpg") -> str:
+    """File extension of a URL (URLs are POSIX paths on every platform)."""
+    return PurePosixPath(urlparse(url).path).suffix.lower() or default
 
 
 def clean_text(text: str) -> str:
@@ -222,7 +227,7 @@ def fetch_revista(
             if q.explanation:
                 entry["explanation"] = q.explanation
             if q.image_url:
-                image_name = f"{qid}{Path(q.image_url).suffix.lower() or '.jpg'}"
+                image_name = f"{qid}{url_suffix(q.image_url)}"
                 target = img_dir / image_name
                 if target.is_file() or http.download(q.image_url, target, delay=0.5):
                     entry["image"] = f"img/{image_name}"

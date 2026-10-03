@@ -792,6 +792,7 @@ source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "pillow" },
+    { name = "platformdirs" },
     { name = "textual" },
     { name = "textual-image", extra = ["textual"] },
 ]
@@ -808,6 +809,7 @@ dev = [
 requires-dist = [
     { name = "beautifulsoup4", specifier = ">=4.15.0" },
     { name = "pillow", specifier = ">=12.1" },
+    { name = "platformdirs", specifier = ">=4.3" },
     { name = "textual", specifier = ">=8.2.8" },
     { name = "textual-image", extras = ["textual"], specifier = ">=0.14.1" },
 ]

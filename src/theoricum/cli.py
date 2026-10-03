@@ -1,6 +1,8 @@
 """Command line entry point (`dgt`). Commands and flags in English, messages in Spanish."""
 
 import argparse
+import contextlib
+import os
 import sys
 from collections import Counter
 from collections.abc import Sequence
@@ -50,19 +52,20 @@ def build_parser() -> argparse.ArgumentParser:
         "--questions-dir",
         metavar="DIR",
         default=argparse.SUPPRESS,
-        help="carpeta de preguntas (por defecto ./questions, $THEORICUM_QUESTIONS o XDG)",
+        help="carpeta de preguntas (por defecto ./questions o $THEORICUM_QUESTIONS)",
     )
     group.add_argument(
         "--data-dir",
         metavar="DIR",
         default=argparse.SUPPRESS,
-        help="carpeta del progreso (por defecto ~/.local/share/theoricum o $THEORICUM_DATA)",
+        help="carpeta del progreso (por defecto la de datos del usuario o $THEORICUM_DATA)",
     )
     group.add_argument(
         "--image-protocol",
         choices=IMAGE_PROTOCOLS,
         default=argparse.SUPPRESS,
-        help="cómo dibujar las imágenes (por defecto auto: kitty usa TGP)",
+        help="cómo dibujar las imágenes (por defecto auto o $THEORICUM_IMAGE_PROTOCOL: "
+        "kitty usa TGP y Windows Terminal, Sixel)",
     )
     group.add_argument(
         "--since",
@@ -105,6 +108,7 @@ def build_parser() -> argparse.ArgumentParser:
         "topics", parents=[common], help="lista los temas y cuántas preguntas tiene cada uno"
     )
     sub.add_parser("stats", parents=[common], help="abre las estadísticas")
+    sub.add_parser("saved", parents=[common], help="abre tus preguntas guardadas")
     sub.add_parser(
         "check", parents=[common], help="sincroniza y valida questions/ sin abrir la interfaz"
     )
@@ -307,6 +311,16 @@ def cmd_import(args: argparse.Namespace) -> int:
     return 0
 
 
+def _image_protocol(args: argparse.Namespace) -> str:
+    chosen = getattr(args, "image_protocol", None) or os.environ.get(
+        "THEORICUM_IMAGE_PROTOCOL", "auto"
+    )
+    if chosen not in IMAGE_PROTOCOLS:
+        print(f"Protocolo de imagen desconocido «{chosen}»; uso «auto».", file=sys.stderr)
+        return "auto"
+    return chosen
+
+
 def cmd_tui(args: argparse.Namespace) -> int:
     from theoricum.tui.terminal import guard_image_probe
 
@@ -322,7 +336,7 @@ def cmd_tui(args: argparse.Namespace) -> int:
     return run_app(
         paths=_paths(args),
         start=start,
-        image_protocol=getattr(args, "image_protocol", "auto"),
+        image_protocol=_image_protocol(args),
         since=getattr(args, "since", None),
         seed=getattr(args, "seed", None),
     )
@@ -337,7 +351,17 @@ COMMANDS = {
 }
 
 
+def _robust_console() -> None:
+    """Never crash on characters the console cannot encode (e.g. a cp1252 pipe on Windows)."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            with contextlib.suppress(OSError, ValueError):
+                reconfigure(errors="replace")
+
+
 def main(argv: Sequence[str] | None = None) -> int:
+    _robust_console()
     parser = build_parser()
     args = parser.parse_args(argv)
     handler = COMMANDS.get(args.command or "", cmd_tui)

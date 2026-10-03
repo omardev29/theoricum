@@ -120,26 +120,31 @@ def test_question_stats_streaks_and_groups():
     ev = events(("a", False), ("a2", True), ("a", True), ("b", True))
     stats = question_stats(ev, {"a": "A", "a2": "A", "b": "B"})
     assert stats["A"].attempts == 3 and stats["A"].fails == 1 and stats["A"].streak == 2
-    assert stats["A"].in_review
+    assert not stats["A"].in_review  # answered right after failing: cleared from review
     assert not stats["B"].in_review
 
 
-def test_review_pool_excludes_mastered_and_weights_frequent_failures():
-    pool = [question("a"), question("b"), question("c")]
+def test_review_pool_clears_a_question_once_answered_right():
+    pool = [question("a"), question("b"), question("c"), question("d")]
     ev = events(
-        ("a", False), ("a", False), ("b", False), *[("b", True)] * MASTERED_STREAK, ("c", True)
-    )
+        ("a", False), ("a", False),  # failed twice: pending
+        ("b", False), ("b", True),  # failed, then right: cleared
+        ("c", True),  # never failed
+        ("d", False), ("d", True), ("d", False),  # failed again later: back in review
+    )  # fmt: skip
     stats = question_stats(ev)
-    assert [q.key for q in review_pool(pool, stats)] == ["a"]
+    assert [q.key for q in review_pool(pool, stats)] == ["a", "d"]
     assert review_weight(stats["a"]) == 3.0
+    assert not stats["b"].mastered
+    assert question_stats(events(*[("e", True)] * MASTERED_STREAK))["e"].mastered
 
 
 def test_pick_review_prefers_heavier_weights():
     pool = [question("heavy"), question("light")]
-    ev = events(*[("heavy", False)] * 6, ("light", False), ("light", True))
+    ev = events(*[("heavy", False)] * 6, ("light", False))
     stats = question_stats(ev)
     firsts = [pick_review(pool, 1, random.Random(seed), stats)[0].key for seed in range(300)]
-    assert firsts.count("heavy") > firsts.count("light") * 5
+    assert firsts.count("heavy") > firsts.count("light") * 2  # weights 7 vs 2
 
 
 def test_pick_study_prefers_unseen_and_exam_is_seeded():

@@ -20,12 +20,12 @@ import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from bs4 import BeautifulSoup, Tag
 
 from theoricum.fetchers.http import HttpClient
-from theoricum.fetchers.revista_dgt import clean_text
+from theoricum.fetchers.revista_dgt import clean_text, url_suffix
 from theoricum.models import FORMAT_ID, LETTERS
 from theoricum.topics import normalize_text
 
@@ -188,7 +188,7 @@ def parse_correction(soup: BeautifulSoup) -> OfficialQuestion | None:
         path = urllib.parse.urlparse(image_url).path
         if m := re.search(r"/IMAGENES/(.+)/([^/]+)$", path):
             folder = m.group(1)
-            stem = f"{Path(m.group(2)).stem.lower()}-{digest[:6]}"
+            stem = f"{PurePosixPath(m.group(2)).stem.lower()}-{digest[:6]}"
     return OfficialQuestion(stem, text, options, answer, image_url, folder)
 
 
@@ -264,7 +264,7 @@ def fetch_dgt_web(
                 "source": "Simulador oficial de examen de la DGT (sedeweb.dgt.gob.es)",
             }
             if q.image_url:
-                name = f"{q.id}{Path(urllib.parse.urlparse(q.image_url).path).suffix.lower() or '.jpg'}"
+                name = f"{q.id}{url_suffix(q.image_url)}"
                 target = img_dir / name
                 if target.is_file() or http.download(q.image_url, target):
                     entry["image"] = f"img/{name}"

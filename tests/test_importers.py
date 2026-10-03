@@ -139,7 +139,11 @@ def test_apkg_all_versions(qdir: Path, tmp_path: Path, version: int):
     assert mc1.answer == 1
     assert mc1.explanation == "Porque sí."
     assert mc1.topic == "senales" and mc1.date == "2025-02"
-    assert MediaResolver(qdir).read(mc1.image_ref) == PNG
+    media = MediaResolver(qdir)
+    try:
+        assert media.read(mc1.image_ref) == PNG
+    finally:
+        media.close()  # Windows cannot delete files that are still open
 
     mc2 = by_key["anki:guid-mc-2"]
     assert mc2.options == ("100 km/h", "120 km/h") and mc2.answer == 1 and mc2.image_ref is None

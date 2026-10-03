@@ -19,7 +19,7 @@ TEST_HELP = """\
 [b]a / b / c / d[/]   responder (también con el ratón)
 [b]← / →[/]           pregunta anterior / siguiente (o clic en la rejilla)
 [b]Enter[/]           examen: entregar · estudio: siguiente pregunta
-[b]f[/]               marcar la pregunta como dudosa
+[b]g[/]               guardar la pregunta en «Preguntas guardadas» (o quitarla)
 [b]x[/]               desactivar la pregunta (cuando ya ves la respuesta)
 [b]r[/]               al corregir: repasar ahora las falladas
 [b]Esc[/]             salir
@@ -40,7 +40,7 @@ class TestScreen(Screen[None]):
         Binding("enter", "advance", "Continuar", priority=True),
         Binding("enter", "close", "Volver al menú", priority=True),
         Binding("r", "retry_failed", "Repasar falladas"),
-        Binding("f", "toggle_flag", "Dudosa"),
+        Binding("g", "toggle_saved", "Guardar"),
         Binding("x", "toggle_disabled", "Desactivar"),
         Binding("escape", "leave", "Salir"),
         Binding("question_mark", "help", "Ayuda", key_display="?"),
@@ -84,7 +84,13 @@ class TestScreen(Screen[None]):
 
     def refresh_view(self) -> None:
         self.query_one(QuestionGrid).set_states(self._states(), self.session.current)
-        self.query_one(QuestionView).show(self.session, self.app.practice.flags())
+        key = self.session.question.key
+        flag = self.app.practice.flags().get(key)
+        self.query_one(QuestionView).show_session(
+            self.session,
+            saved=self.app.practice.is_saved(key),
+            disabled=bool(flag and flag.disabled),
+        )
         self.refresh_bindings()
 
     def _tick(self) -> None:
@@ -222,6 +228,11 @@ class TestScreen(Screen[None]):
         if session.finished:
             self.app.pop_screen()
             return
+        if not self.is_exam and session.n_answered == 0:
+            # Nothing answered: leave without asking and without counting it as a session.
+            self.app.practice.abandon(self.session_id, session)
+            self.app.pop_screen()
+            return
         if self.is_exam:
             title, message = (
                 "¿Abandonar el examen?",
@@ -253,13 +264,11 @@ class TestScreen(Screen[None]):
         if failed:
             self.app.start_test(Mode.STUDY, questions=failed, replace=True)
 
-    def action_toggle_flag(self) -> None:
-        question = self.session.question
-        current = self.app.practice.flags().get(question.key)
-        flagged = not (current and current.flagged)
-        self.app.practice.set_flagged(question.key, flagged)
+    def action_toggle_saved(self) -> None:
+        saved = self.app.practice.toggle_saved(self.session.question.key)
         self.notify(
-            "Marcada como dudosa." if flagged else "Ya no está marcada como dudosa.", timeout=2
+            "Guardada en «Preguntas guardadas»." if saved else "Quitada de «Preguntas guardadas».",
+            timeout=2,
         )
         self.refresh_view()
 

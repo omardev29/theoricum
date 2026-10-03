@@ -56,6 +56,26 @@ class HistoryImport:
     sessions: int = 0
     answers: int = 0
     flags: int = 0
+    saved: int = 0
+
+
+def _row_to_question(r: sqlite3.Row) -> Question:
+    return Question(
+        key=r["key"],
+        text=r["text"],
+        options=tuple(json.loads(r["options"])),
+        answer=r["answer"],
+        topic=r["topic"],
+        origin=r["origin"],
+        dedup=r["dedup"],
+        priority=r["priority"],
+        explanation=r["explanation"],
+        image_ref=r["image_ref"],
+        date=r["date"],
+        source=r["source"],
+        source_name=r["source_name"],
+        tags=tuple(json.loads(r["tags"])),
+    )
 
 
 class Store:
@@ -195,22 +215,7 @@ class Store:
                 continue
             if since and r["date"] and r["date"] < since:
                 continue
-            question = Question(
-                key=r["key"],
-                text=r["text"],
-                options=tuple(json.loads(r["options"])),
-                answer=r["answer"],
-                topic=r["topic"],
-                origin=r["origin"],
-                dedup=r["dedup"],
-                priority=r["priority"],
-                explanation=r["explanation"],
-                image_ref=r["image_ref"],
-                date=r["date"],
-                source=r["source"],
-                source_name=r["source_name"],
-                tags=tuple(json.loads(r["tags"])),
-            )
+            question = _row_to_question(r)
             current = best.get(question.dedup)
             if current is None or (-question.priority, question.key) < (
                 -current.priority,
@@ -218,6 +223,27 @@ class Store:
             ):
                 best[question.dedup] = question
         return sorted(best.values(), key=lambda q: q.key)
+
+    def questions_by_key(self, keys: Iterable[str]) -> dict[str, Question]:
+        """Look questions up by key in any source (the highest priority one wins)."""
+        keys = list(dict.fromkeys(keys))
+        found: dict[str, Question] = {}
+        for start in range(0, len(keys), 500):
+            chunk = keys[start : start + 500]
+            rows = self.conn.execute(
+                f"""
+                SELECT q.*, s.priority, s.origin, s.name AS source_name
+                FROM questions q JOIN sources s ON s.id = q.source_id
+                WHERE q.key IN ({", ".join("?" for _ in chunk)})
+                """,
+                chunk,
+            )
+            for r in rows:
+                question = _row_to_question(r)
+                current = found.get(question.key)
+                if current is None or question.priority > current.priority:
+                    found[question.key] = question
+        return found
 
     def question_index(self) -> tuple[dict[str, str], dict[str, str]]:
         """For every cached question key: its duplicate group and its topic."""
@@ -392,6 +418,23 @@ class Store:
             )
         return new
 
+    # --- saved questions --------------------------------------------------------------------
+
+    def saved(self) -> dict[str, str]:
+        """Saved question keys and when they were saved, most recent first."""
+        rows = self.conn.execute("SELECT question_key, saved_at FROM saved ORDER BY saved_at DESC")
+        return {r["question_key"]: r["saved_at"] for r in rows}
+
+    def set_saved(self, key: str, saved: bool) -> None:
+        with self.conn:
+            if saved:
+                self.conn.execute(
+                    "INSERT OR IGNORE INTO saved (question_key, saved_at) VALUES (?, ?)",
+                    (key, now_iso()),
+                )
+            else:
+                self.conn.execute("DELETE FROM saved WHERE question_key = ?", (key,))
+
     # --- backup -------------------------------------------------------------------------------
 
     def export_history(self) -> dict[str, Any]:
@@ -411,11 +454,13 @@ class Store:
                 }
             )
         flags = [dict(r) for r in self.conn.execute("SELECT * FROM flags ORDER BY question_key")]
+        saved = [dict(r) for r in self.conn.execute("SELECT * FROM saved ORDER BY saved_at")]
         return {
             "format": HISTORY_FORMAT,
             "exported_at": now_iso(),
             "sessions": sessions,
             "flags": flags,
+            "saved": saved,
         }
 
     def import_history(self, data: dict[str, Any]) -> HistoryImport:
@@ -469,4 +514,10 @@ class Store:
                     ),
                 )
                 n_flags += 1
-        return HistoryImport(n_sessions, n_answers, n_flags)
+            before = self.conn.total_changes
+            self.conn.executemany(
+                "INSERT OR IGNORE INTO saved (question_key, saved_at) VALUES (?, ?)",
+                [(r["question_key"], r["saved_at"]) for r in data.get("saved", [])],
+            )
+            n_saved = self.conn.total_changes - before
+        return HistoryImport(n_sessions, n_answers, n_flags, n_saved)

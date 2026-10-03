@@ -18,6 +18,26 @@ interfaz son públicos (GPL-3.0-or-later). Las preguntas son **personales** y nu
   CachyOS/Arch trae 3.14 y uv lo descarga si falta.
 - Terminal de referencia: kitty, donde textual-image usa el protocolo TGP.
 
+## Multiplataforma (Linux, macOS, Windows)
+
+- La CI (`.github/workflows/ci.yml`) pasa ruff y pytest en ubuntu, windows y macos. Cualquier cambio
+  debe mantenerla en verde.
+- Rutas de datos con `platformdirs` (`config.default_data_dir()`):
+  - Linux: `~/.local/share/theoricum` (respeta `$XDG_DATA_HOME`);
+  - Windows: `%LOCALAPPDATA%\theoricum`;
+  - macOS: `~/Library/Application Support/theoricum`.
+  Nunca escribas rutas fijas tipo `~/.local`.
+- Abre siempre los archivos de texto con `encoding="utf-8"`: en Windows la codificación por defecto no
+  es UTF-8.
+- Las URL son rutas POSIX: usa `PurePosixPath` / `url_suffix()`, nunca `Path(url)`. Las rutas guardadas
+  (`image_ref`, zip) van siempre con `/` (`as_posix()`).
+- En los zips se rechazan entradas con `\`, `:` (unidades y ADS de Windows), absolutas o con `..`.
+- Imágenes en Windows: Windows Terminal ≥ 1.22 soporta **Sixel**, y textual-image lo detecta solo
+  (`SixelImage`). Las consolas sin gráficos usan bloques de color (halfcell). No se usa chafa: chafa.py
+  no tiene wheels para Python 3.14. Hay un test de la TUI con `SixelImage`.
+- `THEORICUM_IMAGE_PROTOCOL` fija el protocolo sin necesidad del flag.
+- La CLI reconfigura stdout/stderr con `errors="replace"` para no romper con tuberías en cp1252.
+
 ## Arquitectura (capas)
 
 ```
@@ -41,9 +61,16 @@ src/theoricum/
   unitarios puros.
 - La BD tiene dos partes:
   - **Caché de contenido** (`sources`, `questions`): se reconstruye desde `questions/` en cualquier momento.
-  - **Datos del usuario** (`sessions`, `answers`, `flags`): referencian la `key` estable de la pregunta,
-    sin FK, así que sobreviven a que cambien o desaparezcan los archivos. La sincronización **nunca** los
-    toca.
+  - **Datos del usuario** (`sessions`, `answers`, `flags`, `saved`): referencian la `key` estable de la
+    pregunta, sin FK, así que sobreviven a que cambien o desaparezcan los archivos. La sincronización
+    **nunca** los toca.
+- Migraciones:
+  - v1 es `db/schema.sql`;
+  - v2 añade `saved` («Preguntas guardadas», tecla `g`), que sustituye a la antigua marca «dudosa»
+    (`flags.flagged`, ya sin uso).
+- Repaso de fallos: una pregunta está pendiente si su último intento fue un fallo. Sale en cuanto se
+  acierta y vuelve si se falla de nuevo. El peso es `1 + fallos`.
+- Las sesiones de estudio que se abandonan sin responder nada no cuentan (quedan como `abandoned`).
 
 ## Contrato de `questions/`
 
@@ -149,7 +176,7 @@ src/theoricum/
 ```
 dgt                                  panel de control
 dgt exam | study [--topic T] [-n N] | review [-n N]
-dgt topics | stats | check
+dgt topics | stats | saved | check
 dgt fetch {revista-dgt,dgt-web} [--refresh]
 dgt export [-o FILE] [--no-history] | dgt import FILE [--overwrite]
 globales: --questions-dir --data-dir --image-protocol --since AAAA[-MM] --seed --version

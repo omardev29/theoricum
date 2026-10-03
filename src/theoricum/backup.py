@@ -64,7 +64,7 @@ class ImportSummary:
         else:
             lines.append(
                 f"  · historial: {self.history.sessions} sesiones y {self.history.answers} respuestas nuevas, "
-                f"{self.history.flags} marcas actualizadas"
+                f"{self.history.flags} marcas actualizadas, {self.history.saved} preguntas guardadas"
             )
         return "\n".join(lines)
 
@@ -118,7 +118,11 @@ def export_zip(
             "question_bytes": sum(p.stat().st_size for p in files),
             "history": None
             if history_data is None
-            else {"sessions": len(history_data["sessions"]), "flags": len(history_data["flags"])},
+            else {
+                "sessions": len(history_data["sessions"]),
+                "flags": len(history_data["flags"]),
+                "saved": len(history_data["saved"]),
+            },
         }
         zf.writestr("manifest.json", json.dumps(manifest, ensure_ascii=False, indent=2))
     tmp.replace(output)
@@ -136,6 +140,7 @@ def _safe_target(questions_dir: Path, name: str) -> Path:
     rel = PurePosixPath(name)
     if (
         "\\" in name
+        or ":" in name  # Windows drive letters and alternate data streams
         or rel.is_absolute()
         or not rel.parts
         or any(p in ("", ".", "..") for p in rel.parts)

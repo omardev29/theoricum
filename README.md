@@ -1,5 +1,7 @@
 # theoricum
 
+[![CI](https://github.com/omardev29/theoricum/actions/workflows/ci.yml/badge.svg)](https://github.com/omardev29/theoricum/actions/workflows/ci.yml)
+
 Una TUI open source para practicar el examen teórico de la DGT (permiso B) gratis y en la terminal.
 
 - **Examen como el real**: 30 preguntas, 30 minutos y un máximo de 3 fallos. Arriba tienes la rejilla
@@ -7,12 +9,16 @@ Una TUI open source para practicar el examen teórico de la DGT (permiso B) grat
   final.
 - **Estudio**: corrige cada respuesta al momento y prioriza las preguntas que aún no has visto.
 - **Repaso de fallos**: solo las preguntas que has fallado, con más peso a las que fallas más a menudo.
-  Una pregunta sale del repaso tras 3 aciertos seguidos.
+  Una pregunta sale del repaso en cuanto la aciertas; si la vuelves a fallar, vuelve.
 - **Por tema**: señales, velocidad, alcohol y drogas, prioridad…
+- **Preguntas guardadas**: pulsa `g` en cualquier test (también en el examen) para guardar la pregunta
+  que estás viendo. Desde el menú puedes repasarlas con la solución y la explicación, o estudiarlas
+  todas de golpe.
 - **Estadísticas**: porcentaje de aprobados, evolución, temas flojos, cobertura del banco y una
   probabilidad estimada de aprobar.
-- **Imágenes en la terminal**: en kitty usa su protocolo gráfico (TGP), en otras terminales sixel, y si
-  no hay soporte gráfico, bloques Unicode.
+- **Imágenes en la terminal**: en kitty usa su protocolo gráfico (TGP); en Windows Terminal, WezTerm,
+  foot o Konsole, Sixel; y si no hay soporte gráfico, bloques de color.
+- **Linux, macOS y Windows**.
 - **Las preguntas no van en el código**: déjalas en la carpeta `questions/` y se adoptan solas. Admite
   packs JSON/TOML, mazos de Anki (`.apkg`) y carpetas CrowdAnki.
 - **Copias de seguridad**: `dgt export` y `dgt import` guardan y restauran tus preguntas y tu
@@ -32,16 +38,41 @@ uv sync
 uv run dgt
 ```
 
+### Windows
+
+1. Instala uv desde PowerShell:
+
+   ```powershell
+   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+   ```
+
+2. Instala y arranca la app:
+
+   ```powershell
+   git clone <url-del-repo> theoricum
+   cd theoricum
+   uv sync
+   uv run dgt
+   ```
+
+Usa **Windows Terminal 1.22 o posterior**, que dibuja las imágenes con Sixel. La consola clásica o un
+Windows Terminal más antiguo las muestran con bloques de color. Tus datos se guardan en
+`%LOCALAPPDATA%\theoricum`.
+
+### Comando global
+
 Para tener el comando `dgt` disponible en todo el sistema, usa `uv tool install .`. En ese caso la
-carpeta de preguntas será `~/.local/share/theoricum/questions`, salvo que indiques otra con
-`--questions-dir` o con la variable `THEORICUM_QUESTIONS`.
+carpeta de preguntas será la carpeta de datos del usuario (`~/.local/share/theoricum/questions` en
+Linux o `%LOCALAPPDATA%\theoricum\questions` en Windows). Puedes indicar otra con `--questions-dir` o
+con la variable `THEORICUM_QUESTIONS`.
 
 Las imágenes se ven mejor en una terminal con soporte gráfico:
 - kitty: TGP;
-- WezTerm, Konsole, foot, etc.: sixel.
+- Windows Terminal ≥ 1.22, WezTerm, Konsole, foot, etc.: Sixel.
 
 En el resto de terminales se dibujan con bloques de color. Puedes forzar el método con
-`--image-protocol {auto,tgp,sixel,halfcell,unicode}`.
+`--image-protocol {auto,tgp,sixel,halfcell,unicode}` o dejarlo fijo con la variable
+`THEORICUM_IMAGE_PROTOCOL`.
 
 ## Conseguir preguntas
 
@@ -69,6 +100,7 @@ uv run dgt check               # comprueba lo que hay en questions/ y muestra av
 | `dgt review [-n N]` | Repaso de fallos |
 | `dgt topics` | Lista los temas y cuántas preguntas tiene cada uno |
 | `dgt stats` | Abre las estadísticas |
+| `dgt saved` | Abre tus preguntas guardadas |
 | `dgt check` | Sincroniza y valida `questions/` sin abrir la interfaz |
 | `dgt fetch {revista-dgt,dgt-web} [--refresh]` | Descarga preguntas |
 | `dgt export [-o ARCHIVO] [--no-history]` | Crea un `.zip` con tus preguntas y tu historial |
@@ -93,7 +125,7 @@ Los temas no distinguen tildes: `--topic señales` es lo mismo que `--topic sena
 | `a` `b` `c` | Responder (también con el ratón) |
 | `←` `→` | Pregunta anterior / siguiente (también con clic en la rejilla) |
 | `Enter` | Examen: entregar · Estudio: siguiente |
-| `f` | Marcar la pregunta como dudosa |
+| `g` | Guardar la pregunta en «Preguntas guardadas» (o quitarla) |
 | `x` | Desactivar la pregunta para que no vuelva a salir (cuando ya ves la solución) |
 | `r` | Tras corregir: repasar ahora las falladas |
 | `Esc` | Salir |
@@ -169,8 +201,13 @@ Proton Drive…) y **no lo compartas públicamente**.
 
 ## Dónde se guarda todo
 
-- **Preguntas**: `./questions/` si existe en la carpeta actual; si no, `~/.local/share/theoricum/questions`.
-- **Progreso** (SQLite): `~/.local/share/theoricum/theoricum.db`.
+- **Preguntas**: `./questions/` si existe en la carpeta actual; si no, `questions/` dentro de la
+  carpeta de datos.
+- **Progreso, incluidas las preguntas guardadas** (SQLite): `theoricum.db` en la carpeta de datos.
+- **Carpeta de datos**:
+  - Linux: `~/.local/share/theoricum`;
+  - Windows: `%LOCALAPPDATA%\theoricum`;
+  - macOS: `~/Library/Application Support/theoricum`.
 
 ## Fuentes y aviso legal
 
@@ -194,6 +231,8 @@ uv sync
 uv run pytest
 uv run ruff check && uv run ruff format --check
 ```
+
+La integración continua (GitHub Actions) pasa los tests en Linux, Windows y macOS.
 
 La arquitectura y las convenciones están en [CLAUDE.md](CLAUDE.md).
 - El motor (`src/theoricum/engine/`) es lógica pura sin interfaz.

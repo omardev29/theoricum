@@ -9,6 +9,7 @@ class Mode(StrEnum):
     STUDY = "study"
     REVIEW = "review"
     TOPIC = "topic"
+    SAVED = "saved"
 
 
 MODE_LABELS = {
@@ -16,6 +17,7 @@ MODE_LABELS = {
     Mode.STUDY: "Estudio",
     Mode.REVIEW: "Repaso de fallos",
     Mode.TOPIC: "Por tema",
+    Mode.SAVED: "Guardadas",
 }
 
 

@@ -39,7 +39,7 @@ EMPTY_MESSAGES = {
 
 @dataclass(frozen=True, slots=True)
 class StartRequest:
-    command: str = "menu"  # menu | exam | study | review | stats
+    command: str = "menu"  # menu | exam | study | review | stats | saved
     topic: str | None = None
     n: int | None = None
 
@@ -188,6 +188,10 @@ class TheoricumApp(App[None]):
                 from theoricum.tui.screens.stats import StatsScreen
 
                 self.push_screen(StatsScreen())
+            case "saved":
+                from theoricum.tui.screens.saved import SavedScreen
+
+                self.push_screen(SavedScreen())
 
     def start_test(
         self,

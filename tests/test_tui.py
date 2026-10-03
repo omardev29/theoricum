@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 from PIL import Image
-from textual_image.widget import UnicodeImage
+from textual_image.widget import SixelImage, UnicodeImage
 
 from theoricum.config import Paths
 from theoricum.engine.session import SlotState
@@ -87,9 +87,9 @@ async def test_exam_answer_navigate_submit_and_review(paths: Paths):
         retry = app.screen
         assert isinstance(retry, TestScreen) and retry is not screen
         assert retry.session.mode.value == "study" and len(retry.session) >= 28
-        await pilot.press("escape")
+        await pilot.press("escape")  # nothing answered yet: back to the menu without asking
         await pilot.pause()
-        assert isinstance(app.screen, ConfirmScreen)
+        assert isinstance(app.screen, MenuScreen)
 
 
 async def test_study_mode_feedback_and_finish(paths: Paths):
@@ -145,11 +145,11 @@ async def test_topic_and_stats_and_library_screens(paths: Paths):
     app = make_app(paths)
     async with app.run_test(size=SIZE) as pilot:
         await wait_sync(app, pilot)
-        await pilot.press("5")
+        await pilot.press("6")
         await pilot.pause()
         assert app.screen.__class__.__name__ == "StatsScreen"
         await pilot.press("escape")
-        await pilot.press("6")
+        await pilot.press("7")
         await pilot.pause()
         assert app.screen.__class__.__name__ == "LibraryScreen"
         await pilot.press("escape")
@@ -161,8 +161,70 @@ async def test_topic_and_stats_and_library_screens(paths: Paths):
         assert isinstance(app.screen, TestScreen) and app.screen.session.topic is not None
 
 
+async def test_saved_questions_flow(paths: Paths):
+    app = make_app(paths, "study", n=5)
+    async with app.run_test(size=SIZE) as pilot:
+        await wait_sync(app, pilot)
+        test = app.screen
+        assert isinstance(test, TestScreen)
+        first = test.session.question
+        await pilot.press("g")  # save it (works before answering, also in exams)
+        assert app.practice.is_saved(first.key)
+        await pilot.press("right", "g")
+        second = test.session.question
+        await pilot.press("escape")  # nothing answered: leaves without asking
+        await pilot.pause()
+        assert isinstance(app.screen, MenuScreen)
+        assert app.store.session_count() == 0  # the empty study session was not counted
+
+        await pilot.press("5")
+        await pilot.pause()
+        saved = app.screen
+        assert saved.__class__.__name__ == "SavedScreen"
+        assert {q.key for q, _ in saved.items} == {first.key, second.key}
+
+        await pilot.press("enter")
+        await pilot.pause()
+        browse = app.screen
+        assert browse.__class__.__name__ == "BrowseScreen"
+        assert browse.query_one("#q-feedback").display  # the right answer is shown
+        shown = browse.questions[browse.index]
+        await pilot.press("g")  # unsave from the viewer
+        assert not app.practice.is_saved(shown.key)
+        await pilot.press("escape")
+        await pilot.pause()
+        assert len(app.screen.items) == 1
+
+        await pilot.press("e")  # study the saved ones
+        await pilot.pause()
+        assert isinstance(app.screen, TestScreen)
+        assert app.screen.session.mode.value == "saved" and len(app.screen.session) == 1
+
+
 async def test_review_mode_with_no_failures_notifies(paths: Paths):
     app = make_app(paths, "review")
     async with app.run_test(size=SIZE) as pilot:
         await wait_sync(app, pilot)
         assert isinstance(app.screen, MenuScreen)
+
+
+async def test_sixel_rendering_path_used_by_windows_terminal(paths: Paths):
+    """Windows Terminal (>= 1.22) gets SixelImage: switching images and modals must not break."""
+    app = TheoricumApp(
+        paths=paths, start=StartRequest(command="study", n=40), image_cls=SixelImage, seed=1
+    )
+    async with app.run_test(size=SIZE) as pilot:
+        await wait_sync(app, pilot)
+        screen = app.screen
+        assert isinstance(screen, TestScreen)
+        with_image = [i for i, q in enumerate(screen.session.questions) if q.image_ref]
+        for index in with_image[:3]:
+            screen.session.goto(index)
+            screen.refresh_view()
+            await pilot.pause()
+        assert screen.query(SixelImage)
+        await pilot.press("question_mark")  # modal on top of a sixel image
+        await pilot.pause()
+        await pilot.press("escape")
+        await pilot.pause()
+        assert app.screen is screen

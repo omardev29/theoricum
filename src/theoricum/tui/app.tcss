@@ -342,6 +342,33 @@ Screen.-narrow #cards {
     grid-size: 2;
 }
 
+/* ---------- Preguntas guardadas ---------- */
+
+#saved-body {
+    padding: 1 2;
+}
+
+#saved-title {
+    height: auto;
+    margin-bottom: 1;
+}
+
+#saved-table {
+    height: 1fr;
+}
+
+#saved-empty {
+    margin-top: 1;
+    color: $text-muted;
+}
+
+#browse-title {
+    height: auto;
+    padding: 0 2;
+    text-style: bold;
+    border-bottom: solid $primary;
+}
+
 /* ---------- Biblioteca ---------- */
 
 #library-body {

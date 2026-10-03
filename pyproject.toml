@@ -19,6 +19,7 @@ classifiers = [
 dependencies = [
     "beautifulsoup4>=4.15.0",
     "pillow>=12.1",
+    "platformdirs>=4.3",
     "textual>=8.2.8",
     "textual-image[textual]>=0.14.1",
 ]

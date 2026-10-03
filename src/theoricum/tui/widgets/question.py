@@ -9,7 +9,7 @@ from textual.widget import Widget
 from textual.widgets import Static
 
 from theoricum.engine.session import TestSession
-from theoricum.models import LETTERS, MAX_OPTIONS, ORIGIN_LABELS, Flag, Question
+from theoricum.models import LETTERS, MAX_OPTIONS, ORIGIN_LABELS, Question
 from theoricum.topics import topic_name
 from theoricum.tui.images import ImageCache
 
@@ -68,26 +68,32 @@ class QuestionView(Horizontal):
                     yield OptionRow(index)
             yield Static("", id="q-feedback")
 
-    def show(self, session: TestSession, flags: dict[str, Flag] | None = None) -> None:
-        index = session.current
-        question = session.question
-        flag = (flags or {}).get(question.key)
-
+    def show(
+        self,
+        question: Question,
+        *,
+        index: int,
+        total: int,
+        chosen: int | None,
+        reveal: bool,
+        saved: bool = False,
+        disabled: bool = False,
+        browse: bool = False,
+    ) -> None:
+        """Render a question. `reveal` shows the right answer; `browse` is the read-only viewer."""
         meta = Text()
-        meta.append(f"Pregunta {index + 1} de {len(session)}", style="bold")
+        meta.append(f"Pregunta {index + 1} de {total}", style="bold")
         details = [topic_name(question.topic), source_label(question)]
         if when := date_label(question.date):
             details.append(when)
         meta.append("  ·  " + "  ·  ".join(details), style="dim")
-        if flag and flag.flagged:
-            meta.append("  ⚑ dudosa", style="bold yellow")
-        if flag and flag.disabled:
+        if saved:
+            meta.append("  ★ guardada", style="bold yellow")
+        if disabled:
             meta.append("  ⊘ desactivada", style="bold red")
         self.query_one("#q-meta", Static).update(meta)
         self.query_one("#q-text", Static).update(Text(question.text))
 
-        chosen = session.answers[index]
-        reveal = session.reveals(index)
         for row in self.query(OptionRow):
             if row.index >= len(question.options):
                 row.display = False
@@ -103,19 +109,36 @@ class QuestionView(Horizontal):
 
         feedback = self.query_one("#q-feedback", Static)
         if reveal:
-            feedback.update(self._feedback(question, chosen))
+            feedback.update(self._feedback(question, chosen, browse))
             feedback.display = True
-            feedback.set_class(chosen == question.answer, "-ok")
-            feedback.set_class(chosen != question.answer, "-ko")
+            ok = browse or chosen == question.answer
+            feedback.set_class(ok, "-ok")
+            feedback.set_class(not ok, "-ko")
         else:
             feedback.display = False
         self.query_one("#qa-pane", VerticalScroll).scroll_home(animate=False)
         self._show_image(question.image_ref)
 
-    def _feedback(self, question: Question, chosen: int | None) -> Text:
+    def show_session(
+        self, session: TestSession, *, saved: bool = False, disabled: bool = False
+    ) -> None:
+        index = session.current
+        self.show(
+            session.question,
+            index=index,
+            total=len(session),
+            chosen=session.answers[index],
+            reveal=session.reveals(index),
+            saved=saved,
+            disabled=disabled,
+        )
+
+    def _feedback(self, question: Question, chosen: int | None, browse: bool) -> Text:
         text = Text()
         correct = LETTERS[question.answer]
-        if chosen is None:
+        if browse:
+            text.append(f"Respuesta correcta: {correct}", style="bold")
+        elif chosen is None:
             text.append(f"Sin responder. La correcta es la {correct}.", style="bold")
         elif chosen == question.answer:
             text.append("✓ ¡Correcto!", style="bold")

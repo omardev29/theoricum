@@ -86,7 +86,7 @@ def test_fetch_revista_writes_importable_pack_incrementally(qdir: Path):
     assert report.tests_fetched == [224, 226] and report.tests_missing == [225]
     assert report.total_questions == 3
     pack = qdir / "revista-dgt" / "pack.json"
-    data = json.loads(pack.read_text())
+    data = json.loads(pack.read_text(encoding="utf-8"))
     assert [q["id"] for q in data["questions"]] == ["t224-q01", "t226-q01", "t226-q02"]
     assert data["questions"][0]["image"] == "img/t224-q01.jpg"
 

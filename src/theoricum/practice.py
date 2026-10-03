@@ -120,8 +120,25 @@ class Practice:
         self.store.set_flag(key, disabled=disabled)
         self.invalidate()
 
-    def set_flagged(self, key: str, flagged: bool) -> None:
-        self.store.set_flag(key, flagged=flagged)
-
     def flags(self):
         return self.store.flags()
+
+    # --- saved questions («Preguntas guardadas») ---------------------------------------------
+
+    def saved_keys(self) -> dict[str, str]:
+        return self.store.saved()
+
+    def is_saved(self, key: str) -> bool:
+        return key in self.store.saved()
+
+    def toggle_saved(self, key: str) -> bool:
+        """Save or unsave a question; returns whether it is saved now."""
+        saved = not self.is_saved(key)
+        self.store.set_saved(key, saved)
+        return saved
+
+    def saved_questions(self) -> list[tuple[Question, str]]:
+        """Saved questions (most recent first) with their save date; missing sources are skipped."""
+        saved = self.store.saved()
+        found = self.store.questions_by_key(saved)
+        return [(found[key], when) for key, when in saved.items() if key in found]

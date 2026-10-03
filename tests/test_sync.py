@@ -81,3 +81,42 @@ def test_disabled_pack(qdir: Path, store):
     sync(store, qdir)
     assert store.load_questions() == []
     assert not store.sources()[0].enabled
+
+
+def test_migration_turns_old_dudosa_marks_into_saved_questions(tmp_path: Path):
+    import sqlite3
+
+    from theoricum.db.migrations import _migrations
+    from theoricum.db.store import Store
+
+    db = tmp_path / "old.db"
+    conn = sqlite3.connect(db)
+    conn.executescript(_migrations()[0] + "\nPRAGMA user_version = 1;")
+    conn.execute(
+        "INSERT INTO flags VALUES ('k1', 0, 1, NULL, '2026-10-01T10:00:00+00:00'),"
+        " ('k2', 1, 0, NULL, '2026-10-01T10:00:00+00:00')"
+    )
+    conn.commit()
+    conn.close()
+    store = Store.open(db)
+    assert store.saved() == {"k1": "2026-10-01T10:00:00+00:00"}
+    assert not store.flags()["k1"].flagged and store.flags()["k2"].disabled
+    store.close()
+
+
+def test_saved_questions_lookup_and_backup_roundtrip(qdir: Path, store):
+    write_pack(qdir / "p.json", make_questions(3), {"id": "p"})
+    sync(store, qdir)
+    store.set_saved("p:q1", True)
+    store.set_saved("gone:x", True)  # its source no longer exists
+    found = store.questions_by_key(store.saved())
+    assert set(found) == {"p:q1"}
+    data = store.export_history()
+    assert [s["question_key"] for s in data["saved"]] == ["p:q1", "gone:x"]
+
+    from theoricum.db.store import Store
+
+    other = Store.open(":memory:")
+    result = other.import_history(data)
+    assert result.saved == 2 and set(other.saved()) == {"p:q1", "gone:x"}
+    assert other.import_history(data).saved == 0  # idempotent

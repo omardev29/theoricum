@@ -23,8 +23,10 @@ MENU_HELP = """\
 [b]Examen[/]: 30 preguntas, 30 minutos y máximo 3 fallos; se corrige al final.
 [b]Estudio[/]: corrige cada respuesta al momento y prioriza las que no has visto.
 [b]Repaso de fallos[/]: solo las falladas, con más peso a las que fallas más.
-  Una pregunta sale del repaso tras 3 aciertos seguidos.
+  Sale del repaso en cuanto la aciertas; si la vuelves a fallar, vuelve.
 [b]Por tema[/]: estudio de un solo tema.
+[b]Guardadas[/]: las preguntas que guardas pulsando [b]g[/] en cualquier test;
+  puedes verlas con la solución o estudiarlas todas.
 
 Para añadir preguntas, déjalas en la carpeta questions/ (JSON/TOML, .apkg o
 CrowdAnki) o descarga la revista con [b]dgt fetch revista-dgt[/].
@@ -35,8 +37,9 @@ ITEMS = [
     ("study", "2", "Estudio", "corrección al momento"),
     ("review", "3", "Repaso de fallos", ""),
     ("topic", "4", "Por tema", "señales, velocidad, alcohol…"),
-    ("stats", "5", "Estadísticas", "aprobados, temas flojos, evolución"),
-    ("library", "6", "Biblioteca", "fuentes de preguntas y avisos"),
+    ("saved", "5", "Guardadas", "las que guardas con g"),
+    ("stats", "6", "Estadísticas", "aprobados, temas flojos, evolución"),
+    ("library", "7", "Biblioteca", "fuentes de preguntas y avisos"),
     ("quit", "q", "Salir", ""),
 ]
 
@@ -124,6 +127,10 @@ class MenuScreen(Screen[None]):
                         app.start_test(Mode.TOPIC, topic=slug)
 
                 app.push_screen(TopicPicker(labels), chosen)
+            case "saved":
+                from theoricum.tui.screens.saved import SavedScreen
+
+                app.push_screen(SavedScreen())
             case "stats":
                 from theoricum.tui.screens.stats import StatsScreen
 
@@ -182,6 +189,13 @@ class MenuScreen(Screen[None]):
             menu.replace_option_prompt(
                 "review",
                 self._prompt(ITEMS[2], f"{review} pendientes" if review else "nada pendiente"),
+            )
+            saved = len(practice.saved_keys())
+            menu.replace_option_prompt(
+                "saved",
+                self._prompt(
+                    ITEMS[4], f"{saved} guardadas" if saved else "guárdalas con g en un test"
+                ),
             )
             info.append("\nTu progreso\n", style="bold underline")
             if data.exams:

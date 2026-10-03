@@ -23,14 +23,15 @@ def _play(store: Store) -> None:
         elapsed_s=12.5,
         blanks_count_as_wrong=True,
     )
-    store.set_flag("a:q1", flagged=True)
+    store.set_flag("a:q1", disabled=True)
+    store.set_saved("a:q0", True)
 
 
 def test_export_import_roundtrip_merges_without_duplicates(tmp_path: Path, qdir: Path, store):
     write_pack(qdir / "a" / "pack.json", make_questions(2), {"id": "a"})
     (qdir / "a" / "img.png").write_bytes(b"\x89PNG data")
     (qdir / ".cache").mkdir()
-    (qdir / ".cache" / "x").write_text("hidden")
+    (qdir / ".cache" / "x").write_text("hidden", encoding="utf-8")
     sync(store, qdir)
     _play(store)
 
@@ -44,7 +45,11 @@ def test_export_import_roundtrip_merges_without_duplicates(tmp_path: Path, qdir:
             "questions/a/img.png",
         } == names
         assert zf.getinfo("questions/a/img.png").compress_type == zipfile.ZIP_STORED
-        assert json.loads(zf.read("manifest.json"))["history"] == {"sessions": 1, "flags": 1}
+        assert json.loads(zf.read("manifest.json"))["history"] == {
+            "sessions": 1,
+            "flags": 1,
+            "saved": 1,
+        }
 
     # Restore into a fresh place.
     new_q = tmp_path / "new_questions"
@@ -54,9 +59,10 @@ def test_export_import_roundtrip_merges_without_duplicates(tmp_path: Path, qdir:
         summary.files_added == 2 and summary.history.sessions == 1 and summary.history.answers == 2
     )
     sync(other, new_q)
-    assert len(other.load_questions()) == 2
+    assert len(other.load_questions()) == 1  # a:q1 was disabled, and that flag came along
     assert [e.key for e in other.answer_events()] == [e.key for e in store.answer_events()]
-    assert other.flags()["a:q1"].flagged
+    assert other.flags()["a:q1"].disabled
+    assert set(other.saved()) == {"a:q0"}
 
     # Importing again is idempotent.
     again = import_zip(other, new_q, out)
@@ -72,7 +78,7 @@ def test_import_conflicts_and_overwrite(tmp_path: Path, qdir: Path, store):
     assert summary.conflicts == ["p.json"] and summary.history is None
     summary = import_zip(store, qdir, out, overwrite=True)
     assert summary.files_overwritten == 1
-    assert len(json.loads((qdir / "p.json").read_text())["questions"]) == 1
+    assert len(json.loads((qdir / "p.json").read_text(encoding="utf-8"))["questions"]) == 1
 
 
 def test_import_rejects_zip_slip_and_foreign_zips(tmp_path: Path, qdir: Path, store):
