@@ -44,6 +44,8 @@ uv run dgt
 
    ```powershell
    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+   # o con scoop
+   scoop install uv
    ```
 
 2. Instala y arranca la app:
