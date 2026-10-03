@@ -9,7 +9,7 @@ Una TUI open source para practicar el examen teórico de la DGT (permiso B) grat
   final.
 - **Estudio**: corrige cada respuesta al momento y prioriza las preguntas que aún no has visto.
 - **Repaso de fallos**: solo las preguntas que has fallado, con más peso a las que fallas más a menudo.
-  Una pregunta sale del repaso en cuanto la aciertas; si la vuelves a fallar, vuelve.
+  Una pregunta sale del repaso tras 3 aciertos seguidos; el progreso se ve como «↻ repaso 1/3».
 - **Por tema**: señales, velocidad, alcohol y drogas, prioridad…
 - **Preguntas guardadas**: pulsa `g` en cualquier test (también en el examen) para guardar la pregunta
   que estás viendo. Desde el menú puedes repasarlas con la solución y la explicación, o estudiarlas

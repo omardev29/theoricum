@@ -120,31 +120,31 @@ def test_question_stats_streaks_and_groups():
     ev = events(("a", False), ("a2", True), ("a", True), ("b", True))
     stats = question_stats(ev, {"a": "A", "a2": "A", "b": "B"})
     assert stats["A"].attempts == 3 and stats["A"].fails == 1 and stats["A"].streak == 2
-    assert not stats["A"].in_review  # answered right after failing: cleared from review
+    assert stats["A"].in_review  # only 2 right in a row since the failure
     assert not stats["B"].in_review
 
 
-def test_review_pool_clears_a_question_once_answered_right():
+def test_review_pool_needs_three_right_answers_in_a_row():
     pool = [question("a"), question("b"), question("c"), question("d")]
     ev = events(
         ("a", False), ("a", False),  # failed twice: pending
-        ("b", False), ("b", True),  # failed, then right: cleared
+        ("b", False), *[("b", True)] * MASTERED_STREAK,  # 3 right in a row: out
         ("c", True),  # never failed
-        ("d", False), ("d", True), ("d", False),  # failed again later: back in review
+        ("d", False), ("d", True), ("d", True),  # only 2 right in a row: still pending
     )  # fmt: skip
     stats = question_stats(ev)
     assert [q.key for q in review_pool(pool, stats)] == ["a", "d"]
     assert review_weight(stats["a"]) == 3.0
-    assert not stats["b"].mastered
-    assert question_stats(events(*[("e", True)] * MASTERED_STREAK))["e"].mastered
+    assert stats["b"].mastered and not stats["d"].mastered
+    assert (stats["d"].streak, MASTERED_STREAK) == (2, 3)
 
 
 def test_pick_review_prefers_heavier_weights():
     pool = [question("heavy"), question("light")]
-    ev = events(*[("heavy", False)] * 6, ("light", False))
+    ev = events(*[("heavy", False)] * 6, ("light", False), ("light", True))
     stats = question_stats(ev)
     firsts = [pick_review(pool, 1, random.Random(seed), stats)[0].key for seed in range(300)]
-    assert firsts.count("heavy") > firsts.count("light") * 2  # weights 7 vs 2
+    assert firsts.count("heavy") > firsts.count("light") * 5  # weights 7 vs 0.5
 
 
 def test_pick_study_prefers_unseen_and_exam_is_seeded():

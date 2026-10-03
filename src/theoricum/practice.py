@@ -1,6 +1,7 @@
 """Glue between the store and the engine: builds tests and records them. Used by the TUI."""
 
 import random
+from collections.abc import Iterable
 from dataclasses import dataclass
 
 from theoricum.db.store import Store
@@ -50,6 +51,16 @@ class Practice:
 
     def review_count(self) -> int:
         return len(review_pool(self.pool, self._stats()))
+
+    def review_progress(self, questions: Iterable[Question]) -> dict[str, int]:
+        """Right answers in a row of the given questions that are pending review (by key)."""
+        stats = self._stats()
+        progress: dict[str, int] = {}
+        for question in questions:
+            entry = stats.get(question.dedup)
+            if entry is not None and entry.in_review:
+                progress[question.key] = entry.streak
+        return progress
 
     def overview(self) -> Overview:
         group_of, topic_of = self.store.question_index()

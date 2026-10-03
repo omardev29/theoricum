@@ -79,6 +79,7 @@ class QuestionView(Horizontal):
         saved: bool = False,
         disabled: bool = False,
         browse: bool = False,
+        review: str | None = None,
     ) -> None:
         """Render a question. `reveal` shows the right answer; `browse` is the read-only viewer."""
         meta = Text()
@@ -87,6 +88,8 @@ class QuestionView(Horizontal):
         if when := date_label(question.date):
             details.append(when)
         meta.append("  ·  " + "  ·  ".join(details), style="dim")
+        if review:
+            meta.append(f"  {review}", style="bold cyan")
         if saved:
             meta.append("  ★ guardada", style="bold yellow")
         if disabled:
@@ -120,7 +123,12 @@ class QuestionView(Horizontal):
         self._show_image(question.image_ref)
 
     def show_session(
-        self, session: TestSession, *, saved: bool = False, disabled: bool = False
+        self,
+        session: TestSession,
+        *,
+        saved: bool = False,
+        disabled: bool = False,
+        review: str | None = None,
     ) -> None:
         index = session.current
         self.show(
@@ -131,6 +139,7 @@ class QuestionView(Horizontal):
             reveal=session.reveals(index),
             saved=saved,
             disabled=disabled,
+            review=review,
         )
 
     def _feedback(self, question: Question, chosen: int | None, browse: bool) -> Text:

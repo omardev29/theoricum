@@ -68,8 +68,10 @@ src/theoricum/
   - v1 es `db/schema.sql`;
   - v2 añade `saved` («Preguntas guardadas», tecla `g`), que sustituye a la antigua marca «dudosa»
     (`flags.flagged`, ya sin uso).
-- Repaso de fallos: una pregunta está pendiente si su último intento fue un fallo. Sale en cuanto se
-  acierta y vuelve si se falla de nuevo. El peso es `1 + fallos`.
+- Repaso de fallos: una pregunta está pendiente si se ha fallado alguna vez y aún no lleva 3 aciertos
+  seguidos (`MASTERED_STREAK`). El peso es `(1 + fallos) / (1 + racha)²`.
+  - La TUI muestra «↻ repaso n/3» y «✓ sale del repaso» al conseguirlo.
+  - En el examen solo se muestra tras corregir, para no revelar si se ha acertado.
 - Las sesiones de estudio que se abandonan sin responder nada no cuentan (quedan como `abandoned`).
 
 ## Contrato de `questions/`

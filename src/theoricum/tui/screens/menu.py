@@ -23,7 +23,7 @@ MENU_HELP = """\
 [b]Examen[/]: 30 preguntas, 30 minutos y máximo 3 fallos; se corrige al final.
 [b]Estudio[/]: corrige cada respuesta al momento y prioriza las que no has visto.
 [b]Repaso de fallos[/]: solo las falladas, con más peso a las que fallas más.
-  Sale del repaso en cuanto la aciertas; si la vuelves a fallar, vuelve.
+  Una pregunta sale del repaso tras 3 aciertos seguidos (lo verás como «↻ repaso 1/3»).
 [b]Por tema[/]: estudio de un solo tema.
 [b]Guardadas[/]: las preguntas que guardas pulsando [b]g[/] en cualquier test;
   puedes verlas con la solución o estudiarlas todas.

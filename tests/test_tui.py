@@ -5,6 +5,7 @@ from PIL import Image
 from textual_image.widget import SixelImage, UnicodeImage
 
 from theoricum.config import Paths
+from theoricum.engine.rules import Mode
 from theoricum.engine.session import SlotState
 from theoricum.tui.app import StartRequest, TheoricumApp
 from theoricum.tui.screens.dialogs import ConfirmScreen
@@ -228,3 +229,59 @@ async def test_sixel_rendering_path_used_by_windows_terminal(paths: Paths):
         await pilot.press("escape")
         await pilot.pause()
         assert app.screen is screen
+
+
+def _history(app: TheoricumApp, key: str, *results: bool) -> None:
+    """Record graded answers for one question, one finished study session each."""
+    for correct in results:
+        sid = app.store.start_session(mode="study", keys=[key])
+        app.store.record_answer(sid, 0, 0 if correct else 1, correct)
+        app.store.finish_session(
+            sid, n_correct=int(correct), n_wrong=int(not correct), n_blank=0, passed=None,
+            elapsed_s=1, blanks_count_as_wrong=False,
+        )  # fmt: skip
+
+
+def _meta(screen) -> str:
+    return str(screen.query_one("#q-meta").content)
+
+
+async def test_review_needs_three_right_answers_and_shows_progress(paths: Paths):
+    app = make_app(paths)
+    async with app.run_test(size=SIZE) as pilot:
+        await wait_sync(app, pilot)
+        key = app.practice.pool[0].key
+        _history(app, key, False, True)  # failed, then one right answer
+        assert app.practice.review_count() == 1
+
+        app.start_test(Mode.REVIEW)
+        await pilot.pause()
+        screen = app.screen
+        question = screen.session.question
+        assert question.key == key and "↻ repaso 1/3" in _meta(screen)
+        await pilot.press("abc"[question.answer])
+        assert "↻ repaso 2/3" in _meta(screen)  # still pending after two in a row
+        await pilot.press("enter")
+        await pilot.pause()
+        assert app.practice.review_count() == 1
+
+        _history(app, key, True)  # third right answer in a row elsewhere
+        app.practice.invalidate()
+        assert app.practice.review_count() == 0
+
+
+async def test_review_progress_is_hidden_during_an_exam(paths: Paths):
+    app = make_app(paths)
+    async with app.run_test(size=SIZE) as pilot:
+        await wait_sync(app, pilot)
+        pending = app.practice.pool[0]
+        _history(app, pending.key, False)
+        app.start_test(Mode.EXAM, questions=[pending])
+        await pilot.pause()
+        screen = app.screen
+        assert "repaso" not in _meta(screen)
+        await pilot.press("abc"[pending.answer])
+        assert "repaso" not in _meta(screen)  # would reveal that the answer was right
+        screen.finish()
+        await pilot.pause()
+        assert "repaso 1/3" in _meta(screen)

@@ -8,6 +8,7 @@ from textual.screen import Screen
 from textual.widgets import Footer, Static
 
 from theoricum.engine.rules import MODE_LABELS, Mode
+from theoricum.engine.selection import MASTERED_STREAK
 from theoricum.engine.session import SlotState, TestSession
 from theoricum.topics import topic_name
 from theoricum.tui.screens.dialogs import ConfirmScreen, HelpScreen
@@ -21,6 +22,8 @@ TEST_HELP = """\
 [b]Enter[/]           examen: entregar · estudio: siguiente pregunta
 [b]g[/]               guardar la pregunta en «Preguntas guardadas» (o quitarla)
 [b]x[/]               desactivar la pregunta (cuando ya ves la respuesta)
+
+«↻ repaso 1/3»: la fallaste antes; sale del repaso con 3 aciertos seguidos.
 [b]r[/]               al corregir: repasar ahora las falladas
 [b]Esc[/]             salir
 """
@@ -66,6 +69,8 @@ class TestScreen(Screen[None]):
         yield Footer()
 
     def on_mount(self) -> None:
+        # Review progress when the test starts, to tell when a question has just left the review.
+        self._review_start = self.app.practice.review_progress(self.session.questions)
         self.query_one("#summary", Static).display = False
         self._tick()
         self.set_interval(1, self._tick)
@@ -90,8 +95,21 @@ class TestScreen(Screen[None]):
             self.session,
             saved=self.app.practice.is_saved(key),
             disabled=bool(flag and flag.disabled),
+            review=self._review_label(),
         )
         self.refresh_bindings()
+
+    def _review_label(self) -> str | None:
+        """«↻ repaso 1/3» while a question is pending review; «✓ sale del repaso» when it leaves."""
+        if self.is_exam and not self.session.finished:
+            return None  # it would give away whether the answer was right
+        question = self.session.question
+        streak = self.app.practice.review_progress([question]).get(question.key)
+        if streak is not None:
+            return f"↻ repaso {streak}/{MASTERED_STREAK}"
+        if question.key in self._review_start:
+            return "✓ sale del repaso"
+        return None
 
     def _tick(self) -> None:
         session = self.session
