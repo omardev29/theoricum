@@ -4,7 +4,8 @@ from theoricum.importers.base import ImportContext, Importer, ImportResult, Pack
 from theoricum.importers.native import NativeImporter
 
 # Bump when importer output changes, so cached sources are re-imported.
-IMPORTER_VERSION = 1
+# 2: keys of packs without an id use `/` on Windows too.
+IMPORTER_VERSION = 2
 
 
 def default_importers() -> list[Importer]:
