@@ -13,7 +13,8 @@ questions/*
 !questions/.gitkeep
 
 # Copias de seguridad generadas con `dgt export` (contienen preguntas e imágenes)
-/theoricum-*.zip
+theoricum-*.zip
+*.zip
 *.apkg
 *.colpkg
 
