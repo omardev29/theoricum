@@ -1,0 +1,59 @@
+[project]
+name = "theoricum"
+version = "0.1.0"
+description = "TUI para practicar el examen teórico de la DGT (permiso B)"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Omar", email = "omaroficial256@proton.me" }
+]
+requires-python = ">=3.14"
+keywords = ["dgt", "tui", "textual", "examen", "carnet", "permiso-b"]
+classifiers = [
+    "Environment :: Console",
+    "Natural Language :: Spanish",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Education :: Testing",
+]
+dependencies = [
+    "beautifulsoup4>=4.15.0",
+    "pillow>=12.1",
+    "textual>=8.2.8",
+    "textual-image[textual]>=0.14.1",
+]
+
+[project.scripts]
+dgt = "theoricum.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.12.22,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.16.10",
+    "textual-dev>=1.8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+# E501: line length is handled by the formatter (long Spanish strings are left as they are).
+# RUF001-003: Spanish text legitimately uses «», ¿, ¡, etc.
+# RUF012: Textual declares BINDINGS / COMPONENT_CLASSES as plain class attributes.
+ignore = ["E501", "RUF001", "RUF002", "RUF003", "RUF012"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["theoricum"]
+known-local-folder = ["conftest", "anki_builder"]

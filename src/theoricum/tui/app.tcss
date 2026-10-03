@@ -1,0 +1,360 @@
+/* theoricum — estilos de la TUI. */
+
+Screen {
+    background: $background;
+}
+
+.dim {
+    color: $text-muted;
+}
+
+/* ---------- Panel de control ---------- */
+
+#menu-body {
+    height: 1fr;
+    padding: 1 2;
+}
+
+#menu-left {
+    width: 1fr;
+    max-width: 70;
+    height: auto;
+}
+
+#logo {
+    color: $accent;
+    text-style: bold;
+}
+
+#tagline {
+    color: $text-muted;
+    margin: 1 0;
+}
+
+#menu {
+    height: auto;
+    border: round $primary;
+    padding: 0 1;
+}
+
+#bank-info {
+    width: 1fr;
+    height: auto;
+    border: round $secondary;
+    padding: 1 2;
+    margin-left: 2;
+}
+
+Screen.-narrow #menu-body {
+    layout: vertical;
+}
+
+Screen.-narrow #bank-info {
+    margin: 1 0 0 0;
+}
+
+/* ---------- Test ---------- */
+
+#topbar {
+    height: auto;
+    padding: 0 1;
+    border-bottom: solid $primary;
+}
+
+#grid {
+    width: 1fr;
+    height: auto;
+    padding-top: 1;
+}
+
+#clock-box {
+    width: auto;
+    height: auto;
+}
+
+#mode-label {
+    width: 100%;
+    color: $text-muted;
+    text-align: right;
+}
+
+#clock {
+    width: auto;
+}
+
+Clock.-warning {
+    color: $warning;
+}
+
+Clock.-danger {
+    color: $error;
+    text-style: bold;
+}
+
+QuestionGrid > .grid--blank {
+    color: $text-muted;
+}
+
+QuestionGrid > .grid--answered {
+    background: $primary 45%;
+    color: $text;
+}
+
+QuestionGrid > .grid--correct {
+    background: $success 55%;
+    color: $text;
+}
+
+QuestionGrid > .grid--wrong {
+    background: $error 60%;
+    color: $text;
+}
+
+QuestionGrid > .grid--missed {
+    background: $warning 55%;
+    color: $text;
+}
+
+QuestionGrid > .grid--current {
+    text-style: bold reverse;
+}
+
+#summary {
+    height: auto;
+    margin: 1 1 0 1;
+    padding: 0 2;
+    border: round $primary;
+}
+
+#summary.-pass {
+    border: round $success;
+}
+
+#summary.-fail {
+    border: round $error;
+}
+
+QuestionView {
+    height: 1fr;
+    padding: 1 1 0 1;
+}
+
+#image-pane {
+    width: 45%;
+    height: 100%;
+    padding-right: 2;
+    align-horizontal: center;
+}
+
+#q-image {
+    width: auto;
+    height: auto;
+}
+
+#image-missing {
+    color: $text-muted;
+    display: none;
+}
+
+QuestionView.-no-image #image-pane {
+    display: none;
+}
+
+#qa-pane {
+    width: 1fr;
+    height: 100%;
+}
+
+#q-meta {
+    margin-bottom: 1;
+}
+
+#q-text {
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+#q-options {
+    height: auto;
+}
+
+OptionRow {
+    height: auto;
+    padding: 0 1;
+    margin-bottom: 1;
+    background: $panel;
+}
+
+OptionRow.-selected {
+    background: $primary 55%;
+    text-style: bold;
+}
+
+OptionRow.-correct {
+    background: $success 45%;
+    text-style: bold;
+}
+
+OptionRow.-wrong {
+    background: $error 45%;
+}
+
+OptionRow.-dim {
+    color: $text-muted;
+}
+
+#q-feedback {
+    height: auto;
+    margin-top: 1;
+    padding: 0 2;
+    border: round $primary;
+}
+
+#q-feedback.-ok {
+    border: round $success;
+}
+
+#q-feedback.-ko {
+    border: round $error;
+}
+
+Screen.-narrow QuestionView {
+    layout: vertical;
+}
+
+Screen.-narrow #image-pane {
+    width: 100%;
+    height: 45%;
+    padding-right: 0;
+    margin-bottom: 1;
+}
+
+/* ---------- Diálogos ----------
+   Fondo transparente a propósito: un tinte translúcido altera el color de primer plano,
+   que es donde kitty (TGP) codifica el ID de la imagen, y la estropearía. */
+
+ModalScreen {
+    background: transparent;
+    align: center middle;
+}
+
+.dialog {
+    width: 70;
+    max-width: 95%;
+    height: auto;
+    max-height: 90%;
+    background: $panel;
+    border: thick $primary;
+    padding: 1 2;
+}
+
+.dialog-tall {
+    height: 80%;
+}
+
+.dialog-title {
+    text-style: bold;
+    margin-bottom: 1;
+}
+
+.dialog-body {
+    height: auto;
+    margin-bottom: 1;
+}
+
+.dialog-buttons {
+    height: auto;
+    align-horizontal: right;
+}
+
+.dialog-buttons Button {
+    margin-left: 2;
+}
+
+.dialog-hint {
+    color: $text-muted;
+}
+
+#topic-list {
+    height: 1fr;
+    margin-bottom: 1;
+}
+
+/* ---------- Estadísticas ---------- */
+
+#stats-body {
+    padding: 1 2;
+}
+
+#cards {
+    height: auto;
+}
+
+.card {
+    width: 1fr;
+    height: auto;
+    border: round $primary;
+    padding: 0 1;
+    margin-right: 1;
+}
+
+.card-label {
+    text-style: bold;
+}
+
+.card-value {
+    color: $accent;
+}
+
+.card-note {
+    color: $text-muted;
+}
+
+.section {
+    text-style: bold;
+    margin-top: 1;
+}
+
+#evolution {
+    height: 3;
+    margin: 1 0 0 0;
+}
+
+#evolution > .sparkline--min-color {
+    color: $success;
+}
+
+#evolution > .sparkline--max-color {
+    color: $error;
+}
+
+#coverage {
+    margin-top: 1;
+}
+
+#topics {
+    height: auto;
+    margin-top: 1;
+}
+
+Screen.-narrow #cards {
+    layout: grid;
+    grid-size: 2;
+}
+
+/* ---------- Biblioteca ---------- */
+
+#library-body {
+    padding: 1 2;
+}
+
+#sources {
+    height: auto;
+    max-height: 50%;
+    margin-top: 1;
+}
+
+#detail-scroll {
+    height: 1fr;
+    margin-top: 1;
+}

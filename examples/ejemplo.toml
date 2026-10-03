@@ -1,0 +1,48 @@
+# Pack de ejemplo del formato «theoricum/1». No contiene preguntas de la DGT: solo sirve para
+# probar la aplicación y para copiar la estructura. Para usarlo, cópialo a questions/:
+#
+#   cp -r examples questions/ejemplo
+#
+# Las rutas de las imágenes son relativas a este archivo.
+format = "theoricum/1"
+
+[pack]
+id = "ejemplo"              # identificador estable: no lo cambies o perderás el historial
+name = "Pack de ejemplo"
+origin = "otro"             # dgt | revista-dgt | anki | ia | otro
+date = "2026-10"
+# priority = 0              # por defecto según el origen (dgt 100, revista-dgt 90, anki 50, ia 10)
+# enabled = true
+# exclude_topics = ["senales"]
+
+[[questions]]
+id = "forma-1"
+text = "¿Qué figura aparece en la imagen?"
+image = "img/cuadrado-rojo.png"
+options = ["Un círculo", "Un cuadrado", "Un triángulo"]
+answer = "B"
+topic = "otros"
+explanation = """
+Es un cuadrado: cuatro lados iguales y cuatro ángulos rectos.
+"""
+
+[[questions]]
+id = "forma-2"
+text = "¿De qué color es el círculo?"
+image = "img/circulo-azul.png"
+options = ["Azul", "Rojo", "Verde"]
+answer = "A"
+
+[[questions]]
+id = "forma-3"
+text = "¿Cuántos lados tiene la figura de la imagen?"
+image = "img/triangulo-verde.png"
+options = ["Dos", "Cuatro", "Tres"]
+answer = "C"
+explanation = "Un triángulo tiene tres lados."
+
+[[questions]]
+id = "sin-imagen"
+text = "Las preguntas también pueden ir sin imagen. ¿Cuál de estas opciones es una letra?"
+options = ["7", "B", "%"]
+answer = "B"

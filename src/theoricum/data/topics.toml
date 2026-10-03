@@ -1,0 +1,191 @@
+# Temas canónicos. Parten de los bloques de las «Fichas de seguimiento – Permiso B» de la DGT,
+# divididos en temas prácticos.
+#
+# Clasificación automática (solo para preguntas sin tema):
+# - Las palabras clave se comparan sin tildes y en minúsculas.
+# - Una palabra acabada en «*» es un prefijo: «adelant*» encaja con «adelantar» y «adelantamiento».
+# - Si no lleva «*», tiene que aparecer como palabra o frase completa.
+# - Cuentan más las coincidencias en el enunciado (×3) que en las opciones (×1), y las frases
+#   más que las palabras sueltas (cada palabra suma). Gana el tema con más puntos; si nada
+#   encaja, la pregunta va a «otros».
+
+[[topic]]
+slug = "senales"
+name = "Señales"
+aliases = ["senalizacion", "señalización", "senales-de-trafico", "marcas-viales", "semaforos"]
+keywords = [
+    "senal*", "semaforo*", "marca vial", "marcas viales", "linea continua", "lineas continuas",
+    "linea discontinua", "lineas discontinuas", "flecha*", "panel*", "agente*", "baliza*",
+    "balizamiento", "cono*", "luz roja", "luz amarilla", "luz verde", "cartel*", "pictograma*",
+    "cebreado", "hito*",
+    "placa*", "marca longitudinal", "marcas longitudinales", "marca transversal", "marcas transversales",
+]
+
+[[topic]]
+slug = "velocidad"
+name = "Velocidad"
+aliases = ["velocidades", "limites-de-velocidad"]
+keywords = ["velocidad*", "km/h", "kilometros por hora", "limite generico", "limites genericos"]
+
+[[topic]]
+slug = "prioridad"
+name = "Prioridad e intersecciones"
+aliases = ["prioridad-de-paso", "intersecciones"]
+keywords = [
+    "prioridad", "preferencia*", "ceda el paso", "ceder el paso", "interseccion*", "glorieta*",
+    "rotonda*", "cruce*", "tiene prioridad",
+]
+
+[[topic]]
+slug = "adelantamiento"
+name = "Adelantamiento"
+aliases = ["adelantamientos", "adelantar"]
+keywords = ["adelant*", "rebas*"]
+
+[[topic]]
+slug = "maniobras"
+name = "Maniobras"
+aliases = ["incorporacion", "cambio-de-direccion", "marcha-atras"]
+keywords = [
+    "marcha atras", "cambio de direccion", "cambiar de direccion", "cambio de sentido",
+    "cambiar de sentido", "media vuelta", "incorpor*", "girar", "gire", "giro a la", "giros", "desplazamiento lateral",
+    "cambiar de carril", "cambio de carril", "maniobra*",
+]
+
+[[topic]]
+slug = "estacionamiento"
+name = "Parada y estacionamiento"
+aliases = ["parada", "parada-y-estacionamiento", "aparcamiento"]
+keywords = [
+    "estacionar", "estacionamiento*", "estacionad*", "parada", "paradas", "parar", "detener*",
+    "aparcar", "aparcad*", "aparcamiento*", "doble fila", "zona azul",
+]
+
+[[topic]]
+slug = "alumbrado"
+name = "Alumbrado"
+aliases = ["luces"]
+keywords = [
+    "alumbrado", "luz de cruce", "luces de cruce", "luz de carretera", "luces de carretera",
+    "luz de posicion", "luces de posicion", "antiniebla", "deslumbr*", "faro*", "luces",
+    "luz de corto alcance", "luz de largo alcance", "intermitente*", "ráfaga*", "rafaga*",
+    "galibo", "luz de estacionamiento", "luces de estacionamiento", "luz de emergencia", "luces de emergencia", "luz de freno", "luces de freno", "luz de marcha atras", "luz antiniebla",
+]
+
+[[topic]]
+slug = "vias"
+name = "La vía"
+aliases = ["la-via", "tipos-de-via", "autopistas", "tuneles"]
+keywords = [
+    "autopista*", "autovia*", "tunel*", "paso a nivel", "pasos a nivel", "arcen*", "carril*",
+    "calzada*", "via de servicio", "travesia*", "via urbana", "vias urbanas", "poblado*",
+    "carretera convencional", "vias interurbanas", "via interurbana", "mediana",
+    "curva*", "rasante*", "resalto*", "pendiente*", "baden*", "puerto*",
+]
+
+[[topic]]
+slug = "distancias"
+name = "Distancias y frenado"
+aliases = ["distancia-de-seguridad", "frenado"]
+keywords = [
+    "distancia de seguridad", "distancia de frenado", "distancia de detencion",
+    "distancia de reaccion", "tiempo de reaccion", "frenad*", "separacion",
+]
+
+[[topic]]
+slug = "documentacion"
+name = "Documentación y permisos"
+aliases = ["documentos", "permisos", "puntos"]
+keywords = [
+    "permiso de conducir", "permiso de circulacion", "documentacion", "documento*", "itv",
+    "inspeccion tecnica", "seguro obligatorio", "puntos", "carnet", "licencia*",
+    "tarjeta de inspeccion", "matricula*", "sancion*", "multa*", "infraccion*", "conductor novel",
+    "permiso b", "permiso de la clase",
+    "permiso de conduccion", "jefatura", "aprendizaje", "autoescuela*",
+]
+
+[[topic]]
+slug = "carga"
+name = "Carga, pasajeros y remolques"
+aliases = ["carga-y-pasajeros", "remolques", "pasajeros"]
+keywords = [
+    "carga", "cargas", "remolque*", "pasajero*", "ocupante*", "baca", "masa maxima", "mma",
+    "sobresal*", "animal*", "portabicicletas", "caravana*",
+]
+
+[[topic]]
+slug = "seguridad"
+name = "Seguridad activa y pasiva"
+aliases = ["seguridad-vial", "seguridad-activa", "seguridad-pasiva", "adas"]
+keywords = [
+    "cinturon*", "airbag*", "reposacabezas", "reposa cabezas", "sistema de retencion", "sistemas de retencion",
+    "retencion infantil", "sri", "casco*", "abs", "esp", "control de estabilidad",
+    "seguridad activa", "seguridad pasiva", "asistente*", "adas", "angulo muerto",
+    "espejo*", "retrovisor*", "visibilidad", "laminas adhesivas", "cortinillas", "extintor*", "extincion", "antiempotramiento", "chasis",
+]
+
+[[topic]]
+slug = "alcohol"
+name = "Alcohol y drogas"
+aliases = ["alcohol-y-drogas", "drogas"]
+keywords = [
+    "alcohol*", "tasa*", "droga*", "estupefaciente*", "cannabis", "cocaina", "g/l", "mg/l",
+    "aire espirado", "sangre", "bebida*",
+]
+
+[[topic]]
+slug = "riesgos"
+name = "Factores de riesgo"
+aliases = ["factores-de-riesgo", "fatiga", "medicamentos"]
+keywords = [
+    "fatiga", "sueno", "cansancio", "medicamento*", "farmaco*", "distraccion*", "movil*",
+    "telefono*", "estres", "emocion*", "lluvia", "niebla", "nieve", "hielo", "viento",
+    "aquaplaning", "somnolencia", "enfermedad*", "atencion", "percepcion",
+    "fatigad*", "envejec*", "edad", "alergia*", "calzado*", "gps", "descans*", "planificacion", "fuma", "fumar", "cigarrillo*", "actitud*", "conducir mucho tiempo",
+]
+
+[[topic]]
+slug = "vulnerables"
+name = "Usuarios vulnerables"
+aliases = ["usuarios-vulnerables", "peatones", "ciclistas"]
+keywords = [
+    "peaton*", "ciclista*", "bicicleta*", "motocicleta*", "motorista*", "ciclomotor*", "vmp",
+    "patinete*", "movilidad personal", "nino*", "personas mayores", "movilidad reducida",
+]
+
+[[topic]]
+slug = "mecanica"
+name = "Mecánica y mantenimiento"
+aliases = ["mantenimiento", "vehiculo"]
+keywords = [
+    "neumatico*", "aceite", "motor", "bateria", "frenos", "liquido de frenos", "embrague",
+    "caja de cambios", "suspension", "amortiguador*", "refrigerante", "correa*", "filtro*",
+    "testigo*", "mantenimiento", "dibujo", "presion de inflado", "escobilla*", "limpiaparabrisas",
+    "freno*", "rueda*", "ruedas motrices", "traccion", "transmision", "caja de velocidades", "relacion de marcha", "cambio de marchas", "salpicadero", "tablero de instrumentos", "circuito*", "lubricacion", "refrigeracion", "encendido", "escape", "zapata*", "pastilla*", "tambor*", "disco*", "eje*", "ciguenal", "pinchazo*", "carburante*", "motor*", "direccion asistida", "ruedas directrices", "repuesto",
+]
+
+[[topic]]
+slug = "accidentes"
+name = "Accidentes y primeros auxilios"
+aliases = ["primeros-auxilios", "siniestros"]
+keywords = [
+    "accidente*", "herido*", "primeros auxilios", "socorr*", "proteger, avisar", "112",
+    "hemorragia*", "reanimacion", "posicion lateral de seguridad", "victima*", "siniestro*",
+    "triangulo*", "chaleco*", "v-16", "auxilio",
+]
+
+[[topic]]
+slug = "medioambiente"
+name = "Conducción eficiente y medio ambiente"
+aliases = ["medio-ambiente", "conduccion-eficiente"]
+keywords = [
+    "eficiente", "consumo", "contamin*", "emision*", "medio ambiente", "combustible*", "ahorr*",
+    "marcha larga", "ruido*", "etiqueta ambiental", "bajas emisiones", "zbe", "claxon",
+    "avisador acustico", "senales acusticas",
+]
+
+[[topic]]
+slug = "otros"
+name = "Otros"
+aliases = ["general", "varios"]
+keywords = []
