@@ -4,7 +4,7 @@ import datetime as dt
 import json
 import re
 import tomllib
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from theoricum.importers.base import ImportContext, ImportResult, PackError
@@ -120,7 +120,9 @@ class NativeImporter:
         warnings: list[str] = []
         where = ctx.rel_path
         meta = parse_pack_meta(data.get("pack"), warnings, f"{where} › pack")
-        namespace = meta.id or str(Path(ctx.rel_path).with_suffix(""))
+        # Without an id, the path inside questions/ is the namespace. It always uses `/`, so keys
+        # (and the history that references them) are the same on Linux, macOS and Windows.
+        namespace = meta.id or str(PurePosixPath(ctx.rel_path).with_suffix(""))
 
         raw_questions = data.get("questions")
         if not isinstance(raw_questions, list):

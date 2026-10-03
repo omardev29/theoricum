@@ -6,6 +6,7 @@ Layout of the zip:
   history.json    sessions (by uuid), answers and flags, as portable JSON
 """
 
+import contextlib
 import hashlib
 import json
 import shutil
@@ -44,6 +45,7 @@ class ImportSummary:
     files_identical: int = 0
     files_overwritten: int = 0
     conflicts: list[str] = field(default_factory=list)
+    failed: list[tuple[str, str]] = field(default_factory=list)  # (path, reason)
     history: HistoryImport | None = None
 
     def describe(self) -> str:
@@ -59,6 +61,12 @@ class ImportSummary:
                 f"  · distintos a los tuyos, conservados ({len(self.conflicts)}); usa --overwrite para reemplazarlos:"
             )
             lines.extend(f"      - {c}" for c in self.conflicts[:20])
+        if self.failed:
+            lines.append(
+                f"  · no se han podido guardar ({len(self.failed)}). Si es por el nombre (Windows no "
+                'admite < > " | ? *), cámbialo en el equipo de origen y exporta de nuevo:'
+            )
+            lines.extend(f"      - {path}: {reason}" for path, reason in self.failed[:20])
         if self.history is None:
             lines.append("  · el archivo no incluía historial")
         else:
@@ -152,6 +160,19 @@ def _safe_target(questions_dir: Path, name: str) -> Path:
     return target
 
 
+def _extract(zf: zipfile.ZipFile, info: zipfile.ZipInfo, target: Path) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    tmp = target.with_name(target.name + ".part")
+    try:
+        with zf.open(info) as src, tmp.open("wb") as dst:
+            shutil.copyfileobj(src, dst)
+        tmp.replace(target)
+    except OSError:
+        with contextlib.suppress(OSError):
+            tmp.unlink(missing_ok=True)
+        raise
+
+
 def import_zip(
     store: Store, questions_dir: Path, path: Path, *, overwrite: bool = False
 ) -> ImportSummary:
@@ -175,23 +196,26 @@ def import_zip(
         ]
         questions_dir.mkdir(parents=True, exist_ok=True)
         for info, target in targets:
-            if target.exists():
+            name = info.filename[len("questions/") :]
+            existed = target.exists()
+            if existed:
                 if target.stat().st_size == info.file_size:
                     with target.open("rb") as mine, zf.open(info) as theirs:
                         if _sha256(mine) == _sha256(theirs):
                             summary.files_identical += 1
                             continue
                 if not overwrite:
-                    summary.conflicts.append(info.filename[len("questions/") :])
+                    summary.conflicts.append(name)
                     continue
+            try:
+                _extract(zf, info, target)
+            except OSError as exc:  # e.g. a name that is valid on Linux but not on Windows
+                summary.failed.append((name, exc.strerror or str(exc)))
+                continue
+            if existed:
                 summary.files_overwritten += 1
             else:
                 summary.files_added += 1
-            target.parent.mkdir(parents=True, exist_ok=True)
-            tmp = target.with_name(target.name + ".part")
-            with zf.open(info) as src, tmp.open("wb") as dst:
-                shutil.copyfileobj(src, dst)
-            tmp.replace(target)
 
         if "history.json" in zf.namelist():
             try:

@@ -1,4 +1,5 @@
 import json
+import sys
 import zipfile
 from pathlib import Path
 
@@ -7,8 +8,13 @@ import pytest
 from theoricum.backup import BackupError, export_zip, import_zip
 from theoricum.db.store import Store
 from theoricum.library import sync
+from theoricum.media import MediaResolver
+from theoricum.practice import Practice
 
+from anki_builder import anki_mc_deck, build_apkg
 from conftest import make_questions, write_pack
+
+PNG = b"\x89PNG\r\n\x1a\nfake-image-bytes"
 
 
 def _play(store: Store) -> None:
@@ -68,6 +74,94 @@ def test_export_import_roundtrip_merges_without_duplicates(tmp_path: Path, qdir:
     again = import_zip(other, new_q, out)
     assert again.files_identical == 2 and again.files_added == 0 and again.history.sessions == 0
     assert len(other.exam_records()) == 1
+
+
+def test_history_exported_on_linux_is_restored_on_any_os(tmp_path: Path, qdir: Path, store):
+    """A `dgt export` made on Linux, imported here: every key of its history finds its question."""
+    linux = tmp_path / "linux"
+    # No id: this pack is keyed by its path inside questions/, the part that differs between OSes.
+    write_pack(linux / "ia" / "mias.json", make_questions(3), {"origin": "ia"})
+    revista = {
+        "id": "t224-q01",
+        "text": "¿Qué indica?",
+        "options": ["Sí", "No"],
+        "answer": "A",
+        "image": "img/t224-q01.png",
+    }
+    write_pack(linux / "revista-dgt" / "pack.json", [revista], {"id": "revista-dgt"})
+    (linux / "revista-dgt" / "img").mkdir()
+    (linux / "revista-dgt" / "img" / "t224-q01.png").write_bytes(PNG)
+    notetypes, notes = anki_mc_deck()
+    (linux / "anki").mkdir()
+    build_apkg(
+        linux / "anki" / "carnet.apkg",
+        version=3,
+        notetypes=notetypes,
+        notes=notes,
+        media={"señal 1.png": PNG},
+        tmp=tmp_path,
+    )
+    # The history references the keys exactly as Linux computes them.
+    failed = ["ia/mias:q0", "revista-dgt:t224-q01", "anki:guid-mc-1"]
+    source = Store.open(":memory:")
+    sid = source.start_session(mode="study", keys=failed)
+    for position, chosen in enumerate([1, 1, 0]):
+        source.record_answer(sid, position, chosen, False)
+    source.finish_session(
+        sid,
+        n_correct=0,
+        n_wrong=3,
+        n_blank=0,
+        passed=None,
+        elapsed_s=30,
+        blanks_count_as_wrong=False,
+    )
+    source.set_flag("ia/mias:q1", disabled=True)
+    source.set_saved("ia/mias:q2", True)
+    source.set_saved("anki:guid-mc-2", True)
+    backup = export_zip(source, linux, tmp_path / "theoricum-linux.zip")
+    source.close()
+
+    import_zip(store, qdir, backup)
+    sync(store, qdir)
+    practice = Practice(store)
+    pool = {q.key: q for q in practice.pool}
+    assert {*failed, "ia/mias:q2", "anki:guid-mc-2"} <= set(pool)
+    assert "ia/mias:q1" not in pool  # the disabled flag found its question
+    assert practice.review_count() == 3  # the three failures are pending review
+    assert {q.key for q, _ in practice.saved_questions()} == {"ia/mias:q2", "anki:guid-mc-2"}
+    media = MediaResolver(qdir)
+    try:
+        assert media.read(pool["revista-dgt:t224-q01"].image_ref) == PNG
+        assert media.read(pool["anki:guid-mc-1"].image_ref) == PNG
+    finally:
+        media.close()  # Windows cannot delete files that are still open
+
+
+def test_import_lists_the_files_it_cannot_write_and_goes_on(tmp_path: Path, qdir: Path, store):
+    src = tmp_path / "src"
+    write_pack(src / "ok.json", make_questions(1), {"id": "ok"})
+    write_pack(src / "sub" / "p.json", make_questions(1), {"id": "p"})
+    backup = export_zip(store, src, tmp_path / "b.zip")
+    (qdir / "sub").write_text("a file where a folder should be", encoding="utf-8")
+    summary = import_zip(store, qdir, backup)
+    assert summary.files_added == 1 and (qdir / "ok.json").is_file()
+    assert [path for path, _ in summary.failed] == ["sub/p.json"]
+    assert summary.history is not None  # the history is restored anyway
+    assert "no se han podido guardar (1)" in summary.describe()
+    assert not list(qdir.rglob("*.part"))
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="only Windows rejects these names")
+def test_import_on_windows_skips_names_windows_does_not_allow(tmp_path: Path, qdir: Path, store):
+    backup = tmp_path / "linux.zip"
+    with zipfile.ZipFile(backup, "w") as zf:
+        zf.writestr("manifest.json", json.dumps({"format": "theoricum-export/1"}))
+        zf.writestr("questions/bien.json", "{}")
+        zf.writestr("questions/¿qué?.json", "{}")
+    summary = import_zip(store, qdir, backup)
+    assert summary.files_added == 1 and [path for path, _ in summary.failed] == ["¿qué?.json"]
+    assert not list(qdir.rglob("*.part"))
 
 
 def test_import_conflicts_and_overwrite(tmp_path: Path, qdir: Path, store):

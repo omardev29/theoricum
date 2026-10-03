@@ -30,8 +30,11 @@ interfaz son públicos (GPL-3.0-or-later). Las preguntas son **personales** y nu
 - Abre siempre los archivos de texto con `encoding="utf-8"`: en Windows la codificación por defecto no
   es UTF-8.
 - Las URL son rutas POSIX: usa `PurePosixPath` / `url_suffix()`, nunca `Path(url)`. Las rutas guardadas
-  (`image_ref`, zip) van siempre con `/` (`as_posix()`).
+  (`image_ref`, zip y la key de los packs sin `id`) van siempre con `/` (`as_posix()`, `PurePosixPath`),
+  para que un export hecho en Linux funcione en Windows y al revés.
 - En los zips se rechazan entradas con `\`, `:` (unidades y ADS de Windows), absolutas o con `..`.
+- `dgt import` omite y lista los archivos que el sistema no deja crear (p. ej., nombres con `?` o `*` en
+  Windows) y sigue con el resto; en ese caso termina con código 1.
 - Imágenes en Windows: Windows Terminal ≥ 1.22 soporta **Sixel**, y textual-image lo detecta solo
   (`SixelImage`). Las consolas sin gráficos usan bloques de color (halfcell). No se usa chafa: chafa.py
   no tiene wheels para Python 3.14. Hay un test de la TUI con `SixelImage`.
@@ -101,8 +104,9 @@ src/theoricum/
   - `*.apkg`/`*.colpkg` de Anki, con un sidecar opcional `<archivo>.toml` que define el mapeo de campos
     y los metadatos;
   - carpetas CrowdAnki (`deck.json`).
-- Identidad estable: `key = "<pack.id>:<id>"`; en Anki, `anki:<guid>`. **No cambiar el cálculo de la
-  key** sin una migración, o se pierde el historial.
+- Identidad estable: `key = "<pack.id>:<id>"`; si el pack no tiene `id`, se usa su ruta dentro de
+  `questions/`, sin extensión y siempre con `/` (`ia/mias:q1`); en Anki, `anki:<guid>`. **No cambiar el
+  cálculo de la key** sin una migración, o se pierde el historial.
 - Duplicados entre fuentes: se usa `dedup`, que es el hash del texto y de las opciones normalizados. Gana
   la fuente con mayor `priority` (dgt 100 > revista-dgt 90 > anki 50 > ia 10).
 - Las opciones **no se barajan**, porque hay respuestas del tipo «Ambas son correctas».

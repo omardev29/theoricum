@@ -308,7 +308,7 @@ def cmd_import(args: argparse.Namespace) -> int:
     finally:
         store.close()
     print(summary.describe())
-    return 0
+    return 1 if summary.failed else 0
 
 
 def _image_protocol(args: argparse.Namespace) -> str:

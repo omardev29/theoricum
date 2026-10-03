@@ -198,6 +198,9 @@ uv run dgt export                    # crea theoricum-AAAA-MM-DD.zip con questio
 uv run dgt import theoricum-2026-10-03.zip
 ```
 
+El `.zip` sirve en cualquier sistema: puedes exportarlo en Linux e importarlo en Windows o macOS (o al
+revés) sin perder el historial.
+
 El `.zip` contiene preguntas e imágenes con derechos de terceros. Guárdalo en tu nube privada (Mega,
 Proton Drive…) y **no lo compartas públicamente**.
 

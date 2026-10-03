@@ -11,6 +11,7 @@ from theoricum.importers.native import NativeImporter
 from theoricum.media import MediaResolver
 
 from anki_builder import FakeNote, FakeNotetype, anki_mc_deck, build_apkg
+from conftest import make_questions, write_pack
 
 PNG = b"\x89PNG\r\n\x1a\nfake-image-bytes"
 
@@ -107,6 +108,13 @@ def test_native_json_and_detection(qdir: Path):
     assert NativeImporter().detect(path) and not NativeImporter().detect(other)
     result = load(NativeImporter(), qdir, path)
     assert result.questions == [] and "no tiene preguntas" in result.warnings[0]
+
+
+def test_native_pack_without_id_is_keyed_by_its_path_with_slashes(qdir: Path):
+    # Keys must not depend on the OS: a history exported on Linux is imported on Windows.
+    path = write_pack(qdir / "ia" / "nuevas" / "mias.json", make_questions(2))
+    result = load(NativeImporter(), qdir, path)
+    assert [q.key for q in result.questions] == ["ia/nuevas/mias:q0", "ia/nuevas/mias:q1"]
 
 
 # --- apkg --------------------------------------------------------------------------------------
