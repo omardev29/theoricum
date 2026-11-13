@@ -4,9 +4,10 @@
 
 Una TUI open source para practicar el examen teórico de la DGT (permiso B) gratis y en la terminal.
 
-- **Examen como el real**: 30 preguntas, 30 minutos y un máximo de 3 fallos. Arriba tienes la rejilla
-  del 1 al 30 y el cronómetro; abajo, la imagen a la izquierda y la pregunta a la derecha. Se corrige al
-  final.
+- **Examen como el real**: 30 preguntas, 30 minutos y un máximo de 3 fallos. Arriba tienes la
+  rejilla del 1 al 30 y el cronómetro; abajo, la imagen a la izquierda y la pregunta a la derecha. Se
+  corrige al final. Cada examen incluye hasta 6 preguntas oficiales de la DGT que aún no dominas:
+  siguen saliendo hasta que las aciertas 3 veces seguidas.
 - **Estudio**: corrige cada respuesta al momento y prioriza las preguntas que aún no has visto,
   empezando por las más recientes.
 - **Repaso de fallos**: solo las preguntas que has fallado, con más peso a las que fallas más a menudo.
@@ -232,7 +233,8 @@ explanation = "…"          # opcional; se ve en estudio y al revisar
 ```
 
 **Duplicados.** Si la misma pregunta está en varias fuentes, se usa la de mayor prioridad: DGT oficial >
-revista > señales del BOE > Anki > IA. Puedes cambiarla con `priority` en `[pack]`. Si las fuentes no
+señales del BOE > revista > Anki > IA. La prioridad solo decide qué copia se usa, no cuántas veces
+sale. Puedes cambiarla con `priority` en `[pack]`. Si las fuentes no
 coinciden en la respuesta, gana la de fecha más reciente, porque la norma ha podido cambiar, y al
 corregir se indica qué decía la otra.
 

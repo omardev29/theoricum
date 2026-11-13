@@ -164,3 +164,21 @@ def test_sibling_signs_never_share_the_same_set_of_options(tmp_path: Path, qdir:
     data = json.loads((qdir / "signals" / "pack.json").read_text(encoding="utf-8"))
     keys = {dedup_key(q["text"], q["options"]) for q in data["questions"]}
     assert len(keys) == len(data["questions"]) == 4
+
+
+def test_an_existing_pack_gets_new_settings_without_downloading_again(tmp_path: Path, qdir: Path):
+    pdf = tmp_path / "boe.pdf"
+    pdf.write_bytes(build_catalogue_pdf(PAGES))
+    signals.fetch_signals(qdir, pdf_path=pdf, log=lambda _: None)
+    pack = qdir / "signals" / "pack.json"
+    data = json.loads(pack.read_text(encoding="utf-8"))
+    data["pack"]["priority"] = 60  # as written by an older version
+    pack.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+
+    def no_download(*args, **kwargs):
+        raise AssertionError("it must not download the BOE again")
+
+    report = signals.fetch_signals(qdir, pdf_path=None, http=no_download, log=lambda _: None)  # type: ignore[arg-type]
+    assert report.already and report.meta_updated
+    again = json.loads(pack.read_text(encoding="utf-8"))
+    assert again["pack"]["priority"] == 95 and again["questions"] == data["questions"]

@@ -161,8 +161,9 @@ src/theoricum/
 1. Enabled sources, minus questions disabled by the user (`x`), excluded topics and `--since`.
 2. **Duplicates** across sources share `dedup` (hash of the normalized statement and options);
    `engine/pool.py` picks the copy to ask:
-   - all copies agree on the answer → highest `priority` wins (dgt 100 > revista-dgt 90 >
-     signals 60 > anki 50 > ia 10);
+   - all copies agree on the answer → highest `priority` wins (dgt 100 > signals 95 >
+     revista-dgt 90 > anki 50 > ia 10). Priority only picks the copy: it never changes how often
+     a question is asked (that is `engine/selection.py`);
    - they disagree and the statement refers to its picture («esta señal», «este vehículo»…) →
      they are different questions that share wording: one copy per answer is kept;
    - they disagree otherwise → the rules changed: the **most recent date** wins and carries an
@@ -175,9 +176,15 @@ src/theoricum/
 
 ## Selection and review
 
-- Exam: uniform random sample of the current (non-outdated) pool, like the real exam.
-- Study: never-seen questions first, the **most recent dates first**, then the ones seen longest
-  ago; the picked ones are asked in random order.
+- **Official quota**: the 90-odd questions of the official simulator (`origin = "dgt"`) are real
+  exam questions, but a uniform draw from ~4,000 would ask 0.67 per exam and none in half of them.
+  So every exam and every study/topic session includes up to `OFFICIAL_QUOTA` (6) official
+  questions that are not mastered yet (3 right in a row), weighted by `review_weight` (never seen
+  = 1, failed often = more). Once all are mastered they come back only by chance.
+- Exam: the quota, then a uniform random sample of the current (non-outdated) pool.
+- Study: the quota, then never-seen questions, the **most recent dates first** (official ones are
+  dated when fetched, so they come first until seen), then the ones seen longest ago; the picked
+  ones are asked in random order.
 - Review: a question is pending if it was ever failed and has not yet been answered right 3 times
   in a row (`MASTERED_STREAK`). Weight `(1 + fails) / (1 + streak)²`. The TUI shows
   «↻ repaso n/3» and «✓ sale del repaso»; in an exam only after the correction.
@@ -236,7 +243,9 @@ src/theoricum/
   questions (455 P/R/S signs) with the official name as the answer, the official meaning as the
   explanation and the embedded images. Legal texts are not copyrighted in Spain (art. 13 LPI) and
   the BOE allows reuse citing the source; still, the result lives only in `signals/` of a
-  questions folder (pack id `signals-rd465`).
+  questions folder (pack id `signals-rd465`, priority 95: the law itself, above the magazine).
+  Without `--refresh`, an existing pack only gets the current `[pack]` settings (`PACK_META`),
+  without downloading the BOE again.
   - Structure comes from positioned chunks (code column, name column, image box per table row);
     wording comes from pypdf's plain text, aligned by comparing without spaces;
     `heal_split_words` rejoins the few words the justified PDF splits.

@@ -37,6 +37,15 @@ PACK_DIR = "signals"
 PACK_ID = "signals-rd465"
 PACK_DATE = "2025-06-17"  # BOE publication date
 QUESTION = "¿Qué indica esta señal?"
+# The law itself: above the magazine (90), below the literal exam questions of the official
+# simulator (100). Only used to pick a copy when the same question is in several sources.
+PACK_META = {
+    "id": PACK_ID,
+    "name": "Catálogo oficial de señales (RD 465/2025)",
+    "origin": "otro",
+    "priority": 95,
+    "date": PACK_DATE,
+}
 ATTRIBUTION = (
     "Catálogo oficial de señales de circulación, anexo del Real Decreto 465/2025 "
     f"({BOE_ID}, BOE del 17-6-2025). Fuente: Agencia Estatal Boletín Oficial del Estado."
@@ -90,6 +99,7 @@ class SignalsReport:
     skipped: list[str] = field(default_factory=list)
     pack_path: Path | None = None
     already: bool = False
+    meta_updated: bool = False  # an existing pack got the current [pack] settings
 
 
 # --- page structure (positioned chunks) --------------------------------------------------------
@@ -416,6 +426,9 @@ def fetch_signals(
         data = json.loads(pack_path.read_text(encoding="utf-8"))
         report.already = True
         report.questions = len(data.get("questions", []))
+        if data.get("pack") != PACK_META:  # e.g. a new priority: no need to download it again
+            _write_pack(pack_path, data.get("questions", []))
+            report.meta_updated = True
         return report
 
     with tempfile.TemporaryDirectory(prefix="theoricum-boe-") as tmp:
@@ -457,13 +470,7 @@ def fetch_signals(
 def _write_pack(pack_path: Path, questions: list[dict]) -> None:
     document = {
         "format": FORMAT_ID,
-        "pack": {
-            "id": PACK_ID,
-            "name": "Catálogo oficial de señales (RD 465/2025)",
-            "origin": "otro",
-            "priority": 60,
-            "date": PACK_DATE,
-        },
+        "pack": PACK_META,
         "attribution": ATTRIBUTION,
         "updated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "questions": questions,

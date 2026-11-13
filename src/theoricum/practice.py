@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from theoricum.db.store import Store
 from theoricum.engine.rules import Mode, rules_for
 from theoricum.engine.selection import (
+    OFFICIAL_QUOTA,
     filter_topic,
     pick_exam,
     pick_review,
@@ -88,13 +89,16 @@ class Practice:
         rules = rules_for(mode, n)
         pool = filter_topic(self.pool, topic)
         if mode is Mode.EXAM:
-            # Like the real exam: only questions that still match the current rules.
+            # Like the real exam: only questions that still match the current rules, plus a few
+            # official ones you have not mastered yet.
             current = [q for q in pool if not q.outdated]
-            questions = pick_exam(current, rules.n_questions, self.rng)
+            questions = pick_exam(
+                current, rules.n_questions, self.rng, self._stats(), OFFICIAL_QUOTA
+            )
         elif mode is Mode.REVIEW:
             questions = pick_review(pool, rules.n_questions, self.rng, self._stats())
         else:
-            questions = pick_study(pool, rules.n_questions, self.rng, self._stats())
+            questions = pick_study(pool, rules.n_questions, self.rng, self._stats(), OFFICIAL_QUOTA)
         if not questions:
             return None
         return TestSession(questions, rules, mode, topic=topic)

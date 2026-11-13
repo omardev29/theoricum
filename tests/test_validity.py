@@ -7,7 +7,7 @@ from theoricum.models import Question
 from theoricum.practice import Practice
 from theoricum.validity import load_changes, notices_for, parse_changes
 
-from conftest import write_pack
+from conftest import make_questions, write_pack
 
 
 def q(key: str, text: str, options: tuple[str, ...], answer: int = 0, **kw) -> Question:
@@ -118,3 +118,12 @@ def test_copies_that_depend_on_their_picture_are_different_questions():
     kept = resolve_duplicates([a, b, c])
     assert [x.key for x in kept] == ["revista:x", "signals:R-2"]  # one per answer
     assert all(not x.notices for x in kept)
+
+
+def test_practice_exams_carry_official_questions(qdir, store):
+    write_pack(qdir / "otros.json", make_questions(100, "o"), {"id": "o", "origin": "revista-dgt"})
+    write_pack(qdir / "dgt.json", make_questions(10, "d"), {"id": "d", "origin": "dgt"})
+    sync(store, qdir)
+    practice = Practice(store, seed=3)
+    exam = practice.build(Mode.EXAM)
+    assert exam is not None and sum(q.origin == "dgt" for q in exam.questions) >= 6

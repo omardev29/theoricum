@@ -42,7 +42,12 @@ def make_questions(n: int, prefix: str = "q", topic: str | None = None) -> list[
 
 
 def question(
-    key: str, answer: int = 0, topic: str = "otros", dedup: str | None = None, **kw
+    key: str,
+    answer: int = 0,
+    topic: str = "otros",
+    dedup: str | None = None,
+    origin: str = "otro",
+    **kw,
 ) -> Question:
     return Question(
         key=key,
@@ -50,7 +55,7 @@ def question(
         options=("A", "B", "C"),
         answer=answer,
         topic=topic,
-        origin="otro",
+        origin=origin,
         dedup=dedup or key,
         **kw,
     )

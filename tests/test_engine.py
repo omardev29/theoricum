@@ -1,4 +1,5 @@
 import random
+from collections import Counter
 
 import pytest
 
@@ -7,6 +8,7 @@ from theoricum.engine.rules import EXAM_RULES, Mode, rules_for
 from theoricum.engine.selection import (
     MASTERED_STREAK,
     pick_exam,
+    pick_official,
     pick_review,
     pick_study,
     question_stats,
@@ -189,3 +191,40 @@ def test_overview_numbers():
     senales = next(t for t in data.topics if t.topic == "senales")
     assert senales.answered == 2 and senales.accuracy == 0.5
     assert data.pass_probability is None  # not enough answers yet
+
+
+def official_pool() -> list:
+    others = [question(f"x{i}") for i in range(200)]
+    official = [question(f"dgt{i}", origin="dgt") for i in range(12)]
+    return others + official
+
+
+def test_exams_and_study_include_official_questions_until_they_are_mastered():
+    pool = official_pool()
+    mastered = [(f"dgt{i}", True) for i in range(4) for _ in range(3)]  # dgt0-3: 3 in a row
+    failed = [("dgt4", False)] * 4  # dgt4: failed four times
+    stats = question_stats(events(*mastered, *failed))
+    counts = Counter()
+    for seed in range(200):
+        exam = pick_exam(pool, 30, random.Random(seed), stats, quota=6)
+        assert len(exam) == len({q.key for q in exam}) == 30
+        official = [q.key for q in exam if q.origin == "dgt"]
+        assert len(official) >= 6  # the quota (and maybe more by chance)
+        counts.update(official)
+        study = pick_study(pool, 10, random.Random(seed), stats, quota=6)
+        assert sum(q.origin == "dgt" for q in study) >= 6
+    # Mastered ones only come by plain chance; the most failed one comes the most.
+    assert max(counts[f"dgt{i}"] for i in range(4)) < min(counts[f"dgt{i}"] for i in range(5, 12))
+    assert counts["dgt4"] == max(counts.values())
+
+
+def test_no_quota_once_every_official_question_is_mastered():
+    pool = official_pool()
+    stats = question_stats(events(*[(f"dgt{i}", True) for i in range(12) for _ in range(3)]))
+    assert pick_official(pool, 6, random.Random(1), stats) == []
+    total = sum(
+        q.origin == "dgt"
+        for seed in range(200)
+        for q in pick_exam(pool, 30, random.Random(seed), stats, quota=6)
+    )
+    assert total / 200 < 3  # ~1.7 by chance (12 of 212), never the 6 of the quota

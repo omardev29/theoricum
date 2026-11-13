@@ -369,6 +369,8 @@ def _fetch_signals(args: argparse.Namespace, target: Path) -> int:
             f"Ya tienes las {fmt_int(report.questions)} preguntas de señales del catálogo "
             f"oficial en {report.pack_path}. Usa --refresh para volver a generarlas."
         )
+        if report.meta_updated:
+            print("He actualizado los datos del pack (nombre, fecha y prioridad).")
         return 0
     print(
         f"\nListo: {fmt_int(report.signs)} señales en el catálogo, "
