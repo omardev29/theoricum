@@ -29,7 +29,8 @@ MENU_HELP = """\
   puedes verlas con la solución o estudiarlas todas.
 
 Para añadir preguntas, déjalas en la carpeta questions/ (JSON/TOML, .apkg o
-CrowdAnki) o descarga la revista con [b]dgt fetch revista-dgt[/].
+CrowdAnki), descarga la revista con [b]dgt fetch revista-dgt[/] o las señales
+oficiales con [b]dgt fetch signals[/].
 """
 
 ITEMS = [
@@ -146,7 +147,7 @@ class MenuScreen(Screen[None]):
         self.app.run_sync(force=False, announce=True)
 
     def action_help(self) -> None:
-        self.app.push_screen(HelpScreen("Ayuda", MENU_HELP))
+        self.app.push_screen(HelpScreen("Ayuda", f"{MENU_HELP}\n{self.app.image_summary()}"))
 
     def refresh_info(self) -> None:
         app = self.app
@@ -169,8 +170,9 @@ class MenuScreen(Screen[None]):
             info.append("No hay preguntas todavía.\n\n", style="bold")
             info.append("Déjalas en la carpeta:\n", style="dim")
             info.append(f"{app.paths.questions_dir}\n\n")
-            info.append("o descarga los tests de la revista de la DGT con\n", style="dim")
+            info.append("o descárgalas, por ejemplo con\n", style="dim")
             info.append("dgt fetch revista-dgt\n", style="bold")
+            info.append("dgt fetch signals\n", style="bold")
         else:
             with_image = sum(1 for q in pool if q.image_ref)
             info.append(f"{fmt_int(len(pool))} preguntas", style="bold")
@@ -212,5 +214,6 @@ class MenuScreen(Screen[None]):
             info.append(f"Acierto reciente: {pct(data.recent_accuracy)}\n")
             info.append(f"Probabilidad de aprobar: {pct(data.pass_probability)}\n")
             info.append(f"Preguntas vistas: {fmt_int(data.seen)} de {fmt_int(data.pool_size)}\n")
-        info.append(f"\n{app.paths.questions_dir}", style="dim")
+        for folder in app.paths.question_dirs:
+            info.append(f"\n{folder}", style="dim")
         self.query_one("#bank-info", Static).update(info)

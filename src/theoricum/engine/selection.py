@@ -60,15 +60,18 @@ def pick_exam(pool: Sequence[Question], n: int, rng: random.Random) -> list[Ques
 def pick_study(
     pool: Sequence[Question], n: int, rng: random.Random, stats: Mapping[str, QuestionStats]
 ) -> list[Question]:
-    """Never-seen questions first, then the ones seen longest ago."""
+    """Never-seen questions first, the most recent ones before the rest (they are the closest to
+    the current exam); then the ones seen longest ago. The picked ones are asked in random order."""
     unseen = [q for q in pool if q.dedup not in stats]
-    rng.shuffle(unseen)
+    rng.shuffle(unseen)  # random among questions of the same date
+    unseen.sort(key=lambda q: q.date or "", reverse=True)  # undated ones last
     if len(unseen) >= n:
-        return unseen[:n]
-    seen = [q for q in pool if q.dedup in stats]
-    rng.shuffle(seen)
-    seen.sort(key=lambda q: stats[q.dedup].last_seen)
-    picked = unseen + seen[: n - len(unseen)]
+        picked = unseen[:n]
+    else:
+        seen = [q for q in pool if q.dedup in stats]
+        rng.shuffle(seen)
+        seen.sort(key=lambda q: stats[q.dedup].last_seen)
+        picked = unseen + seen[: n - len(unseen)]
     rng.shuffle(picked)
     return picked
 

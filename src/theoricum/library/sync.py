@@ -1,6 +1,6 @@
 """Incremental synchronization of the questions folder into the SQLite content cache."""
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -22,6 +22,7 @@ class SyncReport:
     unchanged: int = 0
     errors: list[tuple[str, str]] = field(default_factory=list)
     ignored: list[str] = field(default_factory=list)
+    shadowed: list[tuple[str, Path]] = field(default_factory=list)
 
     @property
     def changed(self) -> bool:
@@ -46,16 +47,17 @@ def resolve_row(question: QuestionData, meta: PackMeta) -> QuestionRow:
 
 def sync(
     store: Store,
-    questions_dir: Path,
+    questions_dirs: Path | Sequence[Path],
     *,
     force: bool = False,
     importers: list[Importer] | None = None,
     progress: ProgressCallback | None = None,
 ) -> SyncReport:
-    """Bring the content cache in line with the folder. User history is never touched."""
+    """Bring the content cache in line with the folders. User history is never touched."""
     report = SyncReport()
-    scanned = scan(questions_dir, importers or default_importers())
+    scanned = scan(questions_dirs, importers or default_importers())
     report.ignored = scanned.ignored
+    report.shadowed = scanned.shadowed
 
     known = store.source_fingerprints()
     present = {s.rel for s in scanned.sources}
@@ -70,7 +72,7 @@ def sync(
             progress(done, len(pending), src.rel)
         (report.updated if src.rel in known else report.added).append(src.rel)
         try:
-            result = src.importer.load(ImportContext(questions_dir=questions_dir, path=src.path))
+            result = src.importer.load(ImportContext(questions_dir=src.root, path=src.path))
         except PackError as exc:
             _store_error(store, src.rel, src.importer.kind, src.fingerprint, str(exc), report)
             continue

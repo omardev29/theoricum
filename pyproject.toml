@@ -20,6 +20,7 @@ dependencies = [
     "beautifulsoup4>=4.15.0",
     "pillow>=12.1",
     "platformdirs>=4.3",
+    "pypdf>=6.21,<7",
     "textual>=8.2.8",
     "textual-image[textual]>=0.14.1",
 ]
@@ -28,8 +29,16 @@ dependencies = [
 dgt = "theoricum.cli:main"
 
 [build-system]
-requires = ["uv_build>=0.12.22,<0.13.0"]
+requires = ["uv_build>=0.13.7,<0.14.0"]
 build-backend = "uv_build"
+
+[tool.uv]
+# 0.9.0 is the first uv that downloads a stable CPython 3.14 (0.8.x would pick 3.14.0rc3). Scoop,
+# Arch and Homebrew ship much newer ones; CI checks this floor with exactly 0.9.0.
+required-version = ">=0.9.0"
+# Always a uv-managed Python 3.14 (python-build-standalone), never the system one: identical on
+# Linux, macOS and Windows.
+python-preference = "only-managed"
 
 [dependency-groups]
 dev = [
@@ -57,4 +66,4 @@ ignore = ["E501", "RUF001", "RUF002", "RUF003", "RUF012"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["theoricum"]
-known-local-folder = ["conftest", "anki_builder"]
+known-local-folder = ["conftest", "anki_builder", "pdf_builder"]

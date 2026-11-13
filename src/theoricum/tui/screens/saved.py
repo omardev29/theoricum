@@ -11,7 +11,7 @@ from textual.widgets import DataTable, Footer, Header, Static
 from theoricum.engine.rules import Mode
 from theoricum.models import Question
 from theoricum.topics import topic_name
-from theoricum.tui.widgets.question import QuestionView, source_label
+from theoricum.tui.widgets.question import QuestionView
 
 SHORT_SOURCES = {"dgt": "DGT oficial", "revista-dgt": "Revista DGT", "ia": "IA"}
 
@@ -22,7 +22,7 @@ def _preview(text: str, width: int) -> str:
 
 
 def _short_source(question: Question) -> str:
-    return SHORT_SOURCES.get(question.origin) or question.source_name or source_label(question)
+    return SHORT_SOURCES.get(question.origin) or question.source_label
 
 
 def _saved_on(value: str) -> str:
@@ -120,6 +120,7 @@ class BrowseScreen(Screen[None]):
         Binding("left", "move(-1)", "Anterior", key_display="←", priority=True),
         Binding("right", "move(1)", "Siguiente", key_display="→", priority=True),
         Binding("g", "toggle_saved", "Guardar/Quitar"),
+        Binding("z", "zoom", "Ampliar imagen"),
         Binding("escape", "app.pop_screen", "Volver"),
     ]
 
@@ -153,6 +154,16 @@ class BrowseScreen(Screen[None]):
         if 0 <= index < len(self.questions):
             self.index = index
             self.refresh_view()
+            self.refresh_bindings()
+
+    def check_action(self, action: str, parameters: tuple[object, ...]) -> bool | None:
+        if action == "zoom":
+            return self.questions[self.index].image_ref is not None
+        return True
+
+    def action_zoom(self) -> None:
+        title = f"Pregunta {self.index + 1} de {len(self.questions)}"
+        self.app.zoom_image(self.questions[self.index], title)
 
     def action_toggle_saved(self) -> None:
         saved = self.app.practice.toggle_saved(self.questions[self.index].key)

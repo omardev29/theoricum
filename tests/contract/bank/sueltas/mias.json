@@ -1,0 +1,21 @@
+{
+  "format": "theoricum/1",
+  "pack": {
+    "name": "Pack sin id: sus keys usan la ruta dentro de questions/, siempre con /",
+    "origin": "otro"
+  },
+  "questions": [
+    {
+      "id": "m-1",
+      "text": "Pregunta de un pack sin id.",
+      "options": ["Verdadero", "Falso", "Depende"],
+      "answer": "C",
+      "date": "2025-02"
+    },
+    {
+      "text": "Pregunta sin id: su id es su posición (q2) y avisa de ello.",
+      "options": ["Uno", "Dos", "Tres"],
+      "answer": "A"
+    }
+  ]
+}

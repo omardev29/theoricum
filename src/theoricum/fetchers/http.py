@@ -1,13 +1,18 @@
 """A small, polite HTTP client (stdlib only): fixed User-Agent, delay between requests, retries."""
 
+import contextlib
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from pathlib import Path
 
 from theoricum import __version__
 
 USER_AGENT = f"theoricum/{__version__} (practica personal del teórico DGT; +https://github.com/)"
+CHUNK = 1 << 20
+
+Progress = Callable[[int, int | None], None]  # bytes so far, total (None if unknown)
 
 
 class HttpClient:
@@ -23,15 +28,17 @@ class HttpClient:
             time.sleep(pause)
         self._last_request = time.monotonic()
 
-    def _open(self, url: str, *, method: str = "GET", delay: float | None = None) -> bytes | None:
-        """Return the body, or None on 404. Retries transient errors with backoff."""
+    def _with_retries[T](
+        self, url: str, read: Callable[[object], T], *, delay: float | None = None
+    ) -> T | None:
+        """Open `url` and `read` the response; None on 404/410. Retries transient errors."""
         last_error: Exception | None = None
         for attempt in range(self.retries):
             self._wait(delay)
-            request = urllib.request.Request(url, method=method, headers={"User-Agent": USER_AGENT})
+            request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
             try:
                 with urllib.request.urlopen(request, timeout=self.timeout) as response:
-                    return response.read() if method == "GET" else b""
+                    return read(response)
             except urllib.error.HTTPError as exc:
                 if exc.code in (404, 410):
                     return None
@@ -43,6 +50,9 @@ class HttpClient:
             time.sleep(2**attempt)
         raise ConnectionError(f"no se pudo descargar {url}: {last_error}")
 
+    def _open(self, url: str, *, delay: float | None = None) -> bytes | None:
+        return self._with_retries(url, lambda response: response.read(), delay=delay)
+
     def get_text(self, url: str) -> str | None:
         body = self._open(url)
         return None if body is None else body.decode("utf-8", errors="replace")
@@ -50,14 +60,36 @@ class HttpClient:
     def exists(self, url: str) -> bool:
         return self._open(url) is not None
 
-    def download(self, url: str, target: Path, *, delay: float | None = None) -> bool:
-        try:
-            body = self._open(url, delay=delay)
-        except ConnectionError:
-            return False
-        if not body:
-            return False
+    def download(
+        self,
+        url: str,
+        target: Path,
+        *,
+        delay: float | None = None,
+        progress: Progress | None = None,
+    ) -> bool:
+        """Stream `url` into `target` (through a `.part` file). False if it could not be done."""
         tmp = target.with_name(target.name + ".part")
-        tmp.write_bytes(body)
+
+        def save(response) -> bool:
+            length = response.headers.get("Content-Length")
+            total = int(length) if length and length.isdigit() else None
+            done = 0
+            with tmp.open("wb") as out:
+                while chunk := response.read(CHUNK):
+                    out.write(chunk)
+                    done += len(chunk)
+                    if progress is not None:
+                        progress(done, total)
+            return done > 0
+
+        try:
+            ok = self._with_retries(url, save, delay=delay)
+        except ConnectionError, OSError:
+            ok = False
+        if not ok:
+            with contextlib.suppress(OSError):
+                tmp.unlink(missing_ok=True)
+            return False
         tmp.replace(target)
         return True

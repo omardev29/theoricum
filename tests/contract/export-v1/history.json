@@ -1,0 +1,125 @@
+{
+ "format": "theoricum-history/1",
+ "exported_at": "2026-10-05T18:00:00+00:00",
+ "sessions": [
+  {
+   "uuid": "00000000-0000-4000-8000-000000000001",
+   "mode": "exam",
+   "topic": null,
+   "started_at": "2026-10-01T10:00:00+00:00",
+   "finished_at": "2026-10-01T10:30:00+00:00",
+   "time_limit_s": 1800,
+   "elapsed_s": 321.5,
+   "n_questions": 4,
+   "n_correct": 1,
+   "n_wrong": 2,
+   "n_blank": 1,
+   "passed": 1,
+   "status": "finished",
+   "answers": [
+    {
+     "position": 0,
+     "question_key": "contrato:c-001",
+     "chosen": 1,
+     "is_correct": 1,
+     "answered_at": "2026-10-01T10:01:00+00:00"
+    },
+    {
+     "position": 1,
+     "question_key": "sueltas/mias:m-1",
+     "chosen": 0,
+     "is_correct": 0,
+     "answered_at": "2026-10-01T10:02:00+00:00"
+    },
+    {
+     "position": 2,
+     "question_key": "anki:guid-mc-1",
+     "chosen": 2,
+     "is_correct": 0,
+     "answered_at": "2026-10-01T10:03:00+00:00"
+    },
+    {
+     "position": 3,
+     "question_key": "contrato:c-003",
+     "chosen": null,
+     "is_correct": 0,
+     "answered_at": null
+    }
+   ]
+  },
+  {
+   "uuid": "00000000-0000-4000-8000-000000000002",
+   "mode": "study",
+   "topic": null,
+   "started_at": "2026-10-02T10:00:00+00:00",
+   "finished_at": "2026-10-02T10:30:00+00:00",
+   "time_limit_s": null,
+   "elapsed_s": 40.0,
+   "n_questions": 2,
+   "n_correct": 2,
+   "n_wrong": 0,
+   "n_blank": 0,
+   "passed": null,
+   "status": "finished",
+   "answers": [
+    {
+     "position": 0,
+     "question_key": "sueltas/mias:m-1",
+     "chosen": 2,
+     "is_correct": 1,
+     "answered_at": "2026-10-02T10:01:00+00:00"
+    },
+    {
+     "position": 1,
+     "question_key": "sueltas/mias:q2",
+     "chosen": 0,
+     "is_correct": 1,
+     "answered_at": "2026-10-02T10:02:00+00:00"
+    }
+   ]
+  },
+  {
+   "uuid": "00000000-0000-4000-8000-000000000003",
+   "mode": "topic",
+   "topic": "senales",
+   "started_at": "2026-10-03T10:00:00+00:00",
+   "finished_at": "2026-10-03T10:30:00+00:00",
+   "time_limit_s": null,
+   "elapsed_s": 3.0,
+   "n_questions": 1,
+   "n_correct": null,
+   "n_wrong": null,
+   "n_blank": null,
+   "passed": null,
+   "status": "abandoned",
+   "answers": [
+    {
+     "position": 0,
+     "question_key": "contrato:c-002",
+     "chosen": null,
+     "is_correct": null,
+     "answered_at": null
+    }
+   ]
+  }
+ ],
+ "flags": [
+  {
+   "question_key": "contrato:c-002",
+   "disabled": 1,
+   "flagged": 0,
+   "note": null,
+   "updated_at": "2026-10-03T10:05:00+00:00"
+  }
+ ],
+ "saved": [
+  {
+   "question_key": "anki:guid-mc-2",
+   "saved_at": "2026-10-01T11:00:00+00:00"
+  },
+  {
+   "question_key": "contrato:c-001",
+   "saved_at": "2026-10-02T11:00:00+00:00"
+  }
+ ]
+}

@@ -3,10 +3,13 @@
 Refs are stored relative to the questions folder so that moving it never breaks anything:
   file:<path>             a regular file inside questions/
   apkg:<path>!<member>    a media member inside an Anki package (zstd-compressed or not)
+With several question folders, a relative path is looked up in each one in order and the first
+that has it wins (the same rule as the library scan).
 """
 
 import threading
 import zipfile
+from collections.abc import Sequence
 from pathlib import Path
 
 ZSTD_MAGIC = b"\x28\xb5\x2f\xfd"
@@ -17,8 +20,9 @@ class MediaError(Exception):
 
 
 class MediaResolver:
-    def __init__(self, questions_dir: Path) -> None:
-        self.questions_dir = questions_dir.resolve()
+    def __init__(self, questions_dirs: Path | Sequence[Path]) -> None:
+        folders = (questions_dirs,) if isinstance(questions_dirs, Path) else questions_dirs
+        self.questions_dirs = tuple(folder.resolve() for folder in folders)
         self._zips: dict[Path, tuple[int, zipfile.ZipFile]] = {}
         self._lock = threading.Lock()
 
@@ -50,10 +54,18 @@ class MediaResolver:
             self._zips.clear()
 
     def _inside(self, rel: str) -> Path:
-        path = (self.questions_dir / rel).resolve()
-        if not path.is_relative_to(self.questions_dir):
-            raise MediaError(f"la imagen sale de la carpeta de preguntas: {rel}")
-        return path
+        """The file of the first folder that has it (or of the first folder, to report it)."""
+        first = None
+        for folder in self.questions_dirs:
+            path = (folder / rel).resolve()
+            if not path.is_relative_to(folder):
+                raise MediaError(f"la imagen sale de la carpeta de preguntas: {rel}")
+            if path.exists():
+                return path
+            first = first or path
+        if first is None:
+            raise MediaError(f"no hay carpeta de preguntas para {rel}")
+        return first
 
     def _read_member(self, path: Path, member: str) -> bytes:
         with self._lock:

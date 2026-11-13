@@ -39,13 +39,19 @@ def _keyword_regex(keyword: str) -> str:
     return r"\b" + re.escape(keyword) + r"(?!\w)"
 
 
+def keyword_pattern(keywords: list[str] | tuple[str, ...]) -> re.Pattern[str] | None:
+    """One regex for a keyword list (accent-insensitive; a trailing `*` makes it a prefix).
+    Match it against `normalize_text(...)`."""
+    unique = sorted({normalize_text(k) for k in keywords if k.strip()})
+    return re.compile("|".join(_keyword_regex(k) for k in unique)) if unique else None
+
+
 @cache
 def load_topics() -> tuple[Topic, ...]:
     raw = resources.files("theoricum.data").joinpath("topics.toml").read_text(encoding="utf-8")
     topics = []
     for entry in tomllib.loads(raw)["topic"]:
-        keywords = sorted({normalize_text(k) for k in entry.get("keywords", [])})
-        pattern = re.compile("|".join(_keyword_regex(k) for k in keywords)) if keywords else None
+        pattern = keyword_pattern(entry.get("keywords", []))
         aliases = tuple(slugify(a) for a in entry.get("aliases", []))
         topics.append(Topic(entry["slug"], entry["name"], aliases, pattern))
     return tuple(topics)

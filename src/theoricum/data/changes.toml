@@ -1,0 +1,101 @@
+# Cambios normativos que pueden dejar anticuadas las preguntas anteriores a su entrada en vigor.
+#
+# Cada [[change]] se aplica a las preguntas que cumplen todo esto:
+# - tienen fecha anterior a `since` (AAAA-MM o AAAA-MM-DD) o no tienen fecha;
+# - si hay `topics`, son de uno de esos temas;
+# - en el enunciado o en la respuesta correcta aparece alguna de las `keywords` (las opciones
+#   incorrectas no cuentan: lo que era falso con la norma antigua sigue siéndolo);
+# - si hay `also`, aparece además alguna de esas palabras.
+# Las palabras se comparan como en topics.toml: sin tildes ni mayúsculas, y «*» al final es un prefijo.
+#
+# level:
+# - "warning": la pregunta se marca con «⚠ posible anticuada», no sale en el examen y la nota se
+#   muestra al corregir;
+# - "info": solo se muestra la nota al corregir.
+#
+# Añade solo cambios con base legal comprobada y cita la norma en la nota.
+
+[[change]]
+id = "v16"
+since = "2026-01"
+level = "warning"
+# «triángulo» a secas no: también es la marca de ceda el paso o la forma de una señal.
+keywords = [
+    "triangulos", "triangulo de presenalizacion", "triangulo senalizador", "un triangulo por",
+    "presenalizacion de peligro",
+]
+note = """Desde el 1 de enero de 2026 la baliza V-16 conectada es obligatoria y sustituye a los \
+triángulos de preseñalización de peligro (RD 159/2021). Esta pregunta es anterior."""
+
+[[change]]
+id = "convencional-90"
+since = "2019-02"
+level = "warning"
+topics = ["velocidad"]
+keywords = ["convencional*", "arcen*"]
+note = """Desde el 29 de enero de 2019 la velocidad máxima de turismos y motocicletas en las \
+carreteras convencionales es de 90 km/h y ya no existe el límite de 100 km/h con arcén \
+pavimentado (RD 1514/2018). Esta pregunta es anterior."""
+
+[[change]]
+id = "adelantar-20"
+since = "2022-04"
+level = "warning"
+keywords = ["adelant*"]
+also = ["20 km/h", "20 kilometros por hora", "rebasar el limite", "superar el limite", "superar la velocidad"]
+note = """Desde el 21 de marzo de 2022 ya no se puede superar en 20 km/h el límite de velocidad \
+para adelantar en carreteras convencionales (Ley 18/2021). Esta pregunta es anterior."""
+
+[[change]]
+id = "urbana-30"
+since = "2021-06"
+level = "warning"
+topics = ["velocidad"]
+keywords = ["urban*", "poblad*", "travesia*", "ciudad*", "calle*"]
+note = """Desde el 11 de mayo de 2021 el límite en vías urbanas es de 30 km/h con un único carril \
+por sentido, 20 km/h con plataforma única y 50 km/h con dos o más carriles por sentido \
+(RD 970/2020). Esta pregunta es anterior."""
+
+[[change]]
+id = "vmp"
+since = "2021-01"
+level = "warning"
+keywords = ["patinete*", "movilidad personal", "vmp"]
+note = """Desde el 2 de enero de 2021 los patinetes eléctricos son vehículos de movilidad personal, \
+con normas propias (RD 970/2020). Esta pregunta es anterior."""
+
+[[change]]
+id = "puntos-2022"
+since = "2022-04"
+level = "info"
+keywords = [
+    "puntos del permiso", "permiso por puntos", "perdida de puntos", "retirada de puntos",
+    "pierde puntos", "perder puntos", "detraccion de puntos", "puntos de su permiso",
+    "saldo de puntos",
+]
+note = """La Ley 18/2021 (en vigor desde el 21 de marzo de 2022) cambió las sanciones del permiso \
+por puntos: por ejemplo, el móvil en la mano pasó a restar 6 puntos, y no llevar cinturón, casco o \
+sistema de retención infantil, 4. Esta pregunta es anterior: comprueba que la respuesta sigue \
+vigente."""
+
+[[change]]
+id = "catalogo-senales-2025"
+since = "2025-06-17"
+level = "info"
+topics = ["senales"]
+keywords = ["senal*", "panel*", "marca*", "placa*", "semaforo*"]
+note = """Esta pregunta es anterior al nuevo catálogo oficial de señales (RD 465/2025, BOE del \
+17-6-2025), que cambia la forma, el código o el significado de algunas señales. Las señales \
+antiguas siguen siendo válidas mientras no se sustituyan."""
+
+[[change]]
+id = "vulnerables-2026"
+since = "2026-10"
+level = "info"
+topics = ["vulnerables"]
+keywords = [
+    "ciclista*", "bicicleta*", "peaton*", "motorista*", "ciclomotor*", "motocicleta*",
+    "patinete*", "vulnerable*",
+]
+note = """Esta pregunta es anterior al RD 518/2026 sobre usuarios vulnerables (en vigor desde el \
+1-10-2026): comprueba que la respuesta sigue vigente."""

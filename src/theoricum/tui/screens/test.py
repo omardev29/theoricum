@@ -22,6 +22,7 @@ TEST_HELP = """\
 [b]Enter[/]           examen: entregar · estudio: siguiente pregunta
 [b]g[/]               guardar la pregunta en «Preguntas guardadas» (o quitarla)
 [b]x[/]               desactivar la pregunta (cuando ya ves la respuesta)
+[b]z[/]               ver la imagen a pantalla completa
 
 «↻ repaso 1/3»: la fallaste antes; sale del repaso con 3 aciertos seguidos.
 [b]r[/]               al corregir: repasar ahora las falladas
@@ -45,6 +46,7 @@ class TestScreen(Screen[None]):
         Binding("r", "retry_failed", "Repasar falladas"),
         Binding("g", "toggle_saved", "Guardar"),
         Binding("x", "toggle_disabled", "Desactivar"),
+        Binding("z", "zoom", "Ampliar imagen"),
         Binding("escape", "leave", "Salir"),
         Binding("question_mark", "help", "Ayuda", key_display="?"),
     ]
@@ -136,6 +138,8 @@ class TestScreen(Screen[None]):
             )
         if action == "toggle_disabled":
             return self.session.reveals()
+        if action == "zoom":
+            return self.session.question.image_ref is not None
         return True
 
     # --- actions ----------------------------------------------------------------------------
@@ -303,5 +307,11 @@ class TestScreen(Screen[None]):
         )
         self.refresh_view()
 
+    def action_zoom(self) -> None:
+        session = self.session
+        title = f"Pregunta {session.current + 1} de {len(session)}"
+        self.app.zoom_image(session.question, title, session)
+
     def action_help(self) -> None:
-        self.app.push_screen(HelpScreen("Ayuda del test", TEST_HELP))
+        body = f"{TEST_HELP}\n{self.app.image_summary()}"
+        self.app.push_screen(HelpScreen("Ayuda del test", body))

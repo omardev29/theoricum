@@ -186,9 +186,15 @@ def fetch_revista(
     questions_dir: Path,
     *,
     refresh: bool = False,
+    last: int | None = None,
     http: HttpClient | None = None,
     log: Log = print,
 ) -> FetchReport:
+    """Download the magazine tests, newest first, so an interrupted run already has the latest.
+
+    `last` limits the run to the N most recent published tests (already downloaded ones count,
+    numbers that do not exist on the site do not).
+    """
     http = http or HttpClient()
     report = FetchReport()
     pack_dir = questions_dir / PACK_DIR
@@ -201,15 +207,34 @@ def fetch_revista(
 
     log("Buscando el último test publicado…")
     latest = discover_latest(http)
-    pending = [n for n in range(FIRST_TEST, latest + 1) if n not in done_tests]
-    log(f"Último test: {latest}. Tests por descargar: {len(pending)}.")
+    newest_first = range(latest, FIRST_TEST - 1, -1)
+    if last is None:
+        pending = [n for n in newest_first if n not in done_tests]
+        log(
+            f"Último test: {latest}. Tests por descargar: {len(pending)}, del más nuevo al más antiguo."
+        )
+        total = str(len(pending))
+    else:
+        pending = list(newest_first)
+        window = "el más reciente" if last == 1 else f"los {last} más recientes"
+        log(f"Último test: {latest}. Se comprueba{'' if last == 1 else 'n'} {window}.")
+        total = "?"
 
-    for i, number in enumerate(pending, start=1):
+    published = 0  # tests within the `last` window, downloaded now or before
+    step = 0
+    for number in pending:
+        if last is not None and published >= last:
+            break
+        if number in done_tests:
+            published += 1
+            continue
+        step += 1
         html = http.get_text(test_url(number))
         if html is None:
             report.tests_missing.append(number)
-            log(f"[{i}/{len(pending)}] test {number}: no existe")
+            log(f"[{step}/{total}] test {number}: no existe")
             continue
+        published += 1
         test = parse_test_page(html, number)
         report.warnings.extend(test.warnings)
         questions = [q for q in questions if f"revista-{number}" not in q.get("tags", [])]
@@ -238,7 +263,7 @@ def fetch_revista(
         done_tests.add(number)
         report.tests_fetched.append(number)
         log(
-            f"[{i}/{len(pending)}] test {number} ({test.label or '¿?'}): {len(test.questions)} preguntas"
+            f"[{step}/{total}] test {number} ({test.label or '¿?'}): {len(test.questions)} preguntas"
         )
         _write_pack(pack_path, questions, done_tests)  # Save progress after every test.
 

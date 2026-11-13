@@ -18,6 +18,18 @@ LETTERS = "ABCD"
 MIN_OPTIONS = 2
 MAX_OPTIONS = len(LETTERS)
 
+MONTHS_ES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
+
+
+def date_label(value: str | None) -> str | None:
+    """«feb 2017» for "2017-02" (or "2017-02-14"); the year alone otherwise."""
+    if not value:
+        return None
+    parts = value.split("-")
+    if len(parts) >= 2 and parts[1].isdigit() and 1 <= int(parts[1]) <= 12:
+        return f"{MONTHS_ES[int(parts[1]) - 1]} {parts[0]}"
+    return parts[0]
+
 
 @dataclass(frozen=True, slots=True)
 class PackMeta:
@@ -56,6 +68,19 @@ class QuestionData:
 
 
 @dataclass(frozen=True, slots=True)
+class Notice:
+    """Something the learner should know about a question (shown in Spanish).
+
+    `warning`: the question may be outdated; it is marked and left out of exams.
+    `info`: a note shown once the answer is revealed.
+    """
+
+    level: str  # "warning" | "info"
+    text: str
+    kind: str = ""  # id of the regulatory change, or "conflict"
+
+
+@dataclass(frozen=True, slots=True)
 class Question:
     """A question ready to be asked, as loaded from the database."""
 
@@ -73,10 +98,23 @@ class Question:
     source: str | None = None
     source_name: str | None = None
     tags: tuple[str, ...] = ()
+    notices: tuple[Notice, ...] = ()
 
     @property
     def answer_letter(self) -> str:
         return LETTERS[self.answer]
+
+    @property
+    def outdated(self) -> bool:
+        """It may no longer match the current rules (see data/changes.toml)."""
+        return any(n.level == "warning" for n in self.notices)
+
+    @property
+    def source_label(self) -> str:
+        """Who published it: the pack name, or the origin for the magazine."""
+        if self.source_name and self.origin != "revista-dgt":
+            return self.source_name
+        return ORIGIN_LABELS.get(self.origin, self.origin)
 
 
 @dataclass(frozen=True, slots=True)

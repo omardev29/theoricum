@@ -156,6 +156,17 @@ def test_pick_study_prefers_unseen_and_exam_is_seeded():
     assert len(pick_exam(pool, 50, random.Random(1))) == 10
 
 
+def test_pick_study_asks_the_newest_unseen_questions_first():
+    dates = ["2014-02", "2026-06", None, "2025-02", "2026-06", "2019-10"]
+    pool = [question(f"q{i}", date=d) for i, d in enumerate(dates)]
+    stats = question_stats(events(("q1", True)))  # q1 (2026-06) was already seen
+    for seed in range(20):
+        picked = pick_study(pool, 3, random.Random(seed), stats)
+        assert {q.key for q in picked} == {"q4", "q3", "q5"}
+    picked = pick_study(pool, 6, random.Random(3), stats)
+    assert {q.key for q in picked} == {f"q{i}" for i in range(6)}  # then undated, then seen
+
+
 def test_pass_probability():
     assert pass_probability(1.0) == pytest.approx(1.0)
     assert pass_probability(0.0) == pytest.approx(0.0)

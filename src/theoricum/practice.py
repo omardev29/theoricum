@@ -88,7 +88,9 @@ class Practice:
         rules = rules_for(mode, n)
         pool = filter_topic(self.pool, topic)
         if mode is Mode.EXAM:
-            questions = pick_exam(pool, rules.n_questions, self.rng)
+            # Like the real exam: only questions that still match the current rules.
+            current = [q for q in pool if not q.outdated]
+            questions = pick_exam(current, rules.n_questions, self.rng)
         elif mode is Mode.REVIEW:
             questions = pick_review(pool, rules.n_questions, self.rng, self._stats())
         else:

@@ -9,27 +9,9 @@ from textual.widget import Widget
 from textual.widgets import Static
 
 from theoricum.engine.session import TestSession
-from theoricum.models import LETTERS, MAX_OPTIONS, ORIGIN_LABELS, Question
+from theoricum.models import LETTERS, MAX_OPTIONS, Question, date_label
 from theoricum.topics import topic_name
 from theoricum.tui.images import ImageCache
-
-MONTHS_ES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
-
-
-def date_label(value: str | None) -> str | None:
-    if not value:
-        return None
-    parts = value.split("-")
-    if len(parts) >= 2 and parts[1].isdigit() and 1 <= int(parts[1]) <= 12:
-        return f"{MONTHS_ES[int(parts[1]) - 1]} {parts[0]}"
-    return parts[0]
-
-
-def source_label(question: Question) -> str:
-    label = ORIGIN_LABELS.get(question.origin, question.origin)
-    if question.source_name and question.origin not in ("revista-dgt",):
-        label = question.source_name
-    return label
 
 
 class OptionRow(Static):
@@ -84,12 +66,15 @@ class QuestionView(Horizontal):
         """Render a question. `reveal` shows the right answer; `browse` is the read-only viewer."""
         meta = Text()
         meta.append(f"Pregunta {index + 1} de {total}", style="bold")
-        details = [topic_name(question.topic), source_label(question)]
+        details = [topic_name(question.topic), question.source_label]
         if when := date_label(question.date):
             details.append(when)
         meta.append("  ·  " + "  ·  ".join(details), style="dim")
         if review:
             meta.append(f"  {review}", style="bold cyan")
+        if question.outdated:
+            # Only the mark: the explanation could give the answer away, it comes with the correction.
+            meta.append("  ⚠ posible anticuada", style="bold dark_orange")
         if saved:
             meta.append("  ★ guardada", style="bold yellow")
         if disabled:
@@ -156,6 +141,11 @@ class QuestionView(Horizontal):
         if question.explanation:
             text.append("\n\n")
             text.append(question.explanation)
+        for notice in question.notices:
+            warning = notice.level == "warning"
+            text.append("\n\n")
+            text.append("⚠ " if warning else "ⓘ ", style="bold dark_orange" if warning else "bold")
+            text.append(notice.text, style="italic")
         if question.source:
             text.append(f"\n\nFuente: {question.source}", style="dim")
         return text

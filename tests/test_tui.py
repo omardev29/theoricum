@@ -285,3 +285,124 @@ async def test_review_progress_is_hidden_during_an_exam(paths: Paths):
         screen.finish()
         await pilot.pause()
         assert "repaso 1/3" in _meta(screen)
+
+
+def test_image_quality_hooks_are_installed_in_textual_image():
+    """If a textual-image upgrade renames these internals, images get softer: update the hooks."""
+    from textual_image import _sixel
+    from textual_image._pixeldata import PixelData
+    from textual_image.renderable.sixel import SixelOptions
+
+    from theoricum.tui import images
+
+    assert images.install_quality_hooks()
+    gradient = Image.linear_gradient("L").convert("RGB").resize((60, 40))
+    scaled = PixelData(gradient).scaled(180, 120).pil_image
+    assert scaled.size == (180, 120)
+    assert scaled.tobytes() == gradient.resize((180, 120), Image.Resampling.LANCZOS).tobytes()
+    quantized = _sixel._quantize_rgb_image(scaled, SixelOptions())
+    assert quantized.mode == "P"
+    assert _sixel.image_to_sixels(scaled).startswith("\x1bP")
+
+
+def test_small_images_are_sharpened_once_and_big_ones_reduced():
+    from io import BytesIO
+
+    from theoricum.tui.images import MAX_SIDE, prepare
+
+    def encode(image: Image.Image) -> bytes:
+        out = BytesIO()
+        image.save(out, format="PNG")
+        return out.getvalue()
+
+    small = Image.new("RGB", (250, 226), (160, 160, 160))
+    small.paste((90, 90, 90), (100, 0, 250, 226))  # mid grays: the edge can get crisper
+    sharpened = prepare(encode(small))
+    assert sharpened.size == (250, 226) and sharpened.tobytes() != small.tobytes()
+    big = prepare(encode(Image.new("LA", (4000, 1000))))
+    assert big.mode == "RGBA" and max(big.size) == MAX_SIDE
+
+
+async def test_zoom_shows_the_image_full_screen_and_returns(paths: Paths):
+    from theoricum.tui.screens.zoom import ImageZoomScreen
+
+    app = make_app(paths, "exam")
+    async with app.run_test(size=SIZE) as pilot:
+        await wait_sync(app, pilot)
+        screen = app.screen
+        session = screen.session
+        without = next(i for i, q in enumerate(session.questions) if not q.image_ref)
+        session.goto(without)
+        screen.refresh_view()
+        await pilot.press("z")  # no image: nothing happens
+        await pilot.pause()
+        assert app.screen is screen
+
+        with_image = next(i for i, q in enumerate(session.questions) if q.image_ref)
+        session.goto(with_image)
+        screen.refresh_view()
+        await pilot.press("z")
+        await pilot.pause()
+        zoom = app.screen
+        assert isinstance(zoom, ImageZoomScreen)
+        image = zoom.query_one("#zoom-image")
+        assert image.size.width > screen.query_one("#q-image").size.width  # it got bigger
+        assert "⏱" in str(zoom.query_one("#zoom-title").content)  # the exam clock goes on
+        await pilot.press("z")
+        await pilot.pause()
+        assert app.screen is screen and not session.finished
+
+        await pilot.press("question_mark")
+        await pilot.pause()
+        assert "Imágenes:" in str(app.screen.query_one(".dialog-body").content)
+
+
+async def test_outdated_questions_show_a_mark(tmp_path: Path):
+    qdir = tmp_path / "questions"
+    old = {
+        "id": "v16",
+        "text": "¿Cuántos triángulos de preseñalización debe llevar un turismo?",
+        "options": ["Dos", "Uno", "Ninguno"],
+        "answer": "A",
+        "date": "2019-05",
+    }
+    write_pack(qdir / "p.json", [old], {"id": "p"})
+    app = make_app(Paths(questions_dir=qdir, data_dir=tmp_path / "data"), "study", n=1)
+    async with app.run_test(size=SIZE) as pilot:
+        await wait_sync(app, pilot)
+        screen = app.screen
+        assert "posible anticuada" in _meta(screen)
+        await pilot.press("a")
+        feedback = str(screen.query_one("#q-feedback").content)
+        assert "V-16" in feedback
+
+
+async def test_app_uses_questions_and_images_from_both_folders(tmp_path: Path):
+    from theoricum.config import QuestionsFolder
+
+    local, glob = tmp_path / "local", tmp_path / "global"
+    (glob / "g" / "img").mkdir(parents=True)
+    Image.new("RGB", (40, 30), "blue").save(glob / "g" / "img" / "blue.png")
+    global_questions = make_questions(3, "g")
+    for q in global_questions:
+        q["image"] = "img/blue.png"
+    write_pack(glob / "g" / "pack.json", global_questions, {"id": "g"})
+    write_pack(local / "l" / "pack.json", make_questions(2, "l"), {"id": "l"})
+    paths = Paths(
+        questions_dir=local,
+        data_dir=tmp_path / "data",
+        folders=(QuestionsFolder(local, "local"), QuestionsFolder(glob, "global")),
+    )
+    app = TheoricumApp(
+        paths=paths, start=StartRequest(command="study", n=5), image_cls=UnicodeImage, seed=1
+    )
+    async with app.run_test(size=SIZE) as pilot:
+        await wait_sync(app, pilot)
+        assert len(app.practice.pool) == 5
+        screen = app.screen
+        with_image = next(i for i, q in enumerate(screen.session.questions) if q.image_ref)
+        screen.session.goto(with_image)
+        screen.refresh_view()
+        await pilot.pause()
+        assert app.images.get(screen.session.question.image_ref) is not None
+        assert screen.query(UnicodeImage)

@@ -31,3 +31,23 @@ jobs:
         run: |
           uv run dgt --version
           uv run dgt check --questions-dir examples
+      - name: Instalación global (uv tool install)
+        shell: bash
+        run: |
+          uv tool install --managed-python .
+          "$(uv tool dir --bin)/dgt" --version
+          "$(uv tool dir --bin)/dgt" check --questions-dir examples
+
+  min-uv:
+    # The oldest uv allowed by `required-version` must keep working with the lockfile.
+    name: uv mínimo (0.9.0)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.9.0"
+      - name: Instalar dependencias
+        run: uv sync --locked
+      - name: Tests
+        run: uv run --locked pytest -q

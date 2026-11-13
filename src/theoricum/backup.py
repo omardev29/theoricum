@@ -1,8 +1,9 @@
 """`dgt export` / `dgt import`: a portable zip with the questions folder and the user history.
 
-Layout of the zip:
+Layout of the zip (format `theoricum-export/1`, frozen: see CLAUDE.md):
   manifest.json   format, date, app version and counts
-  questions/...   copy of the questions folder (hidden entries skipped)
+  questions/...   the question folders, merged (hidden entries skipped); with several folders a
+                  relative path comes from the first folder that has it, as everywhere else
   history.json    sessions (by uuid), answers and flags, as portable JSON
 """
 
@@ -11,6 +12,7 @@ import hashlib
 import json
 import shutil
 import zipfile
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path, PurePosixPath
@@ -81,37 +83,48 @@ def default_export_path() -> Path:
     return Path.cwd() / f"theoricum-{date.today().isoformat()}.zip"
 
 
-def _question_files(questions_dir: Path) -> list[Path]:
-    files = []
-    for path in sorted(questions_dir.rglob("*")):
-        rel = path.relative_to(questions_dir)
-        if any(part.startswith(".") for part in rel.parts) or not path.is_file():
+def _folders(questions_dirs: Path | Sequence[Path]) -> tuple[Path, ...]:
+    return (questions_dirs,) if isinstance(questions_dirs, Path) else tuple(questions_dirs)
+
+
+def _question_files(questions_dirs: Path | Sequence[Path]) -> dict[str, Path]:
+    """Relative path (with /) -> file, the first folder winning, hidden and partial files out."""
+    files: dict[str, Path] = {}
+    for questions_dir in _folders(questions_dirs):
+        if not questions_dir.is_dir():
             continue
-        if path.suffix.lower() in SKIPPED_SUFFIXES:
-            continue
-        files.append(path)
-    return files
+        for path in sorted(questions_dir.rglob("*")):
+            rel = path.relative_to(questions_dir)
+            if any(part.startswith(".") for part in rel.parts) or not path.is_file():
+                continue
+            if path.suffix.lower() in SKIPPED_SUFFIXES:
+                continue
+            files.setdefault(rel.as_posix(), path)
+    return dict(sorted(files.items()))
 
 
 def export_zip(
-    store: Store, questions_dir: Path, output: Path | None = None, *, history: bool = True
+    store: Store,
+    questions_dirs: Path | Sequence[Path],
+    output: Path | None = None,
+    *,
+    history: bool = True,
 ) -> Path:
     output = (output or default_export_path()).resolve()
-    if output.is_relative_to(questions_dir.resolve()):
-        raise BackupError("el .zip no puede guardarse dentro de la carpeta de preguntas")
+    if any(output.is_relative_to(d.resolve()) for d in _folders(questions_dirs)):
+        raise BackupError("el .zip no puede guardarse dentro de una carpeta de preguntas")
     output.parent.mkdir(parents=True, exist_ok=True)
     tmp = output.with_name(output.name + ".part")
-    files = _question_files(questions_dir) if questions_dir.is_dir() else []
+    files = _question_files(questions_dirs)
     history_data = store.export_history() if history else None
     with zipfile.ZipFile(tmp, "w") as zf:
-        for path in files:
+        for rel, path in files.items():
             compress = (
                 zipfile.ZIP_STORED
                 if path.suffix.lower() in STORED_SUFFIXES
                 else zipfile.ZIP_DEFLATED
             )
-            arcname = "questions/" + path.relative_to(questions_dir).as_posix()
-            zf.write(path, arcname, compress_type=compress)
+            zf.write(path, "questions/" + rel, compress_type=compress)
         if history_data is not None:
             zf.writestr(
                 "history.json",
@@ -123,7 +136,7 @@ def export_zip(
             "created_at": now_iso(),
             "app_version": __version__,
             "question_files": len(files),
-            "question_bytes": sum(p.stat().st_size for p in files),
+            "question_bytes": sum(p.stat().st_size for p in files.values()),
             "history": None
             if history_data is None
             else {
@@ -144,7 +157,7 @@ def _sha256(stream) -> str:
     return digest.hexdigest()
 
 
-def _safe_target(questions_dir: Path, name: str) -> Path:
+def _safe_rel(name: str) -> PurePosixPath:
     rel = PurePosixPath(name)
     if (
         "\\" in name
@@ -154,9 +167,13 @@ def _safe_target(questions_dir: Path, name: str) -> Path:
         or any(p in ("", ".", "..") for p in rel.parts)
     ):
         raise BackupError(f"ruta peligrosa dentro del zip: {name!r}")
+    return rel
+
+
+def _safe_target(questions_dir: Path, rel: PurePosixPath) -> Path:
     target = questions_dir.joinpath(*rel.parts)
     if not target.resolve().is_relative_to(questions_dir.resolve()):
-        raise BackupError(f"ruta peligrosa dentro del zip: {name!r}")
+        raise BackupError(f"ruta peligrosa dentro del zip: {rel.as_posix()!r}")
     return target
 
 
@@ -174,8 +191,18 @@ def _extract(zf: zipfile.ZipFile, info: zipfile.ZipInfo, target: Path) -> None:
 
 
 def import_zip(
-    store: Store, questions_dir: Path, path: Path, *, overwrite: bool = False
+    store: Store,
+    questions_dir: Path,
+    path: Path,
+    *,
+    overwrite: bool = False,
+    search_dirs: Sequence[Path] = (),
 ) -> ImportSummary:
+    """Restore an export: new files go to `questions_dir`; the history is merged.
+
+    `search_dirs` are the question folders in use (first wins): a file that is already there,
+    identical, is not copied again; one that differs is a conflict, unless `overwrite`, which
+    replaces the copy in use where it is."""
     if not path.is_file() or not zipfile.is_zipfile(path):
         raise BackupError(f"«{path}» no es un archivo .zip válido")
     summary = ImportSummary()
@@ -190,13 +217,18 @@ def import_zip(
         members = [
             i for i in zf.infolist() if i.filename.startswith("questions/") and not i.is_dir()
         ]
-        targets = [
-            (info, _safe_target(questions_dir, info.filename[len("questions/") :]))
-            for info in members
-        ]
+        folders = list(dict.fromkeys([*search_dirs, questions_dir]))
+        entries = [(info, _safe_rel(info.filename[len("questions/") :])) for info in members]
+        planned = []
+        for info, rel in entries:  # validate every path before writing anything
+            in_use = next(
+                (t for d in folders if (t := _safe_target(d, rel)).exists()),
+                _safe_target(questions_dir, rel),
+            )
+            planned.append((info, rel, in_use))
         questions_dir.mkdir(parents=True, exist_ok=True)
-        for info, target in targets:
-            name = info.filename[len("questions/") :]
+        for info, rel, target in planned:
+            name = rel.as_posix()
             existed = target.exists()
             if existed:
                 if target.stat().st_size == info.file_size:

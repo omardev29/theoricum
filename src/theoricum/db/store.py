@@ -10,7 +10,9 @@ from pathlib import Path
 from typing import Any
 
 from theoricum.db.migrations import migrate
+from theoricum.engine.pool import resolve_duplicates
 from theoricum.models import AnswerEvent, ExamRecord, Flag, PackMeta, Question
+from theoricum.validity import annotate
 
 HISTORY_FORMAT = "theoricum-history/1"
 
@@ -198,7 +200,8 @@ class Store:
         ]
 
     def load_questions(self, *, since: str | None = None) -> list[Question]:
-        """Active question pool: enabled sources, not disabled by the user, deduplicated."""
+        """Active question pool: enabled sources, not disabled by the user, one copy per duplicate
+        group (see `engine.pool`), with notices about later regulatory changes (`validity`)."""
         disabled = {k for k, f in self.flags().items() if f.disabled}
         rows = self.conn.execute(
             """
@@ -207,22 +210,14 @@ class Store:
             WHERE s.enabled = 1
             """
         )
-        best: dict[str, Question] = {}
-        for r in rows:
-            if r["key"] in disabled:
-                continue
-            if r["topic"] in json.loads(r["exclude_topics"]):
-                continue
-            if since and r["date"] and r["date"] < since:
-                continue
-            question = _row_to_question(r)
-            current = best.get(question.dedup)
-            if current is None or (-question.priority, question.key) < (
-                -current.priority,
-                current.key,
-            ):
-                best[question.dedup] = question
-        return sorted(best.values(), key=lambda q: q.key)
+        candidates = [
+            _row_to_question(r)
+            for r in rows
+            if r["key"] not in disabled
+            and r["topic"] not in json.loads(r["exclude_topics"])
+            and not (since and r["date"] and r["date"] < since)
+        ]
+        return annotate(resolve_duplicates(candidates))
 
     def questions_by_key(self, keys: Iterable[str]) -> dict[str, Question]:
         """Look questions up by key in any source (the highest priority one wins)."""

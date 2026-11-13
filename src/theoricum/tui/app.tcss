@@ -229,6 +229,28 @@ Screen.-narrow #image-pane {
     margin-bottom: 1;
 }
 
+/* ---------- Imagen a pantalla completa (z) ---------- */
+
+#zoom-title {
+    height: 1;
+    padding: 0 1;
+}
+
+#zoom-pane {
+    height: 1fr;
+    align: center middle;
+}
+
+#zoom-image {
+    width: auto;
+    height: auto;
+}
+
+#zoom-missing {
+    width: auto;
+    color: $text-muted;
+}
+
 /* ---------- Diálogos ----------
    Fondo transparente a propósito: un tinte translúcido altera el color de primer plano,
    que es donde kitty (TGP) codifica el ID de la imagen, y la estropearía. */

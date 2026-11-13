@@ -1,11 +1,15 @@
 import json
+import zipfile
+from io import BytesIO
 from pathlib import Path
 
 from bs4 import BeautifulSoup
 
-from theoricum.fetchers import dgt_web, revista_dgt
+from theoricum.fetchers import anki, dgt_web, revista_dgt
 from theoricum.importers import ImportContext
+from theoricum.importers.apkg import ApkgImporter
 from theoricum.importers.native import NativeImporter
+from theoricum.library.scan import scan
 
 
 def article(n: int, answer: str | None, explanation: str = "") -> str:
@@ -66,8 +70,8 @@ class FakeHttp:
         self.requests.append(url)
         return self.pages.get(url)
 
-    def exists(self, url: str) -> bool:
-        return self.get_text(url) is not None
+    def exists(self, url: str) -> bool:  # discovery probes are not page downloads
+        return url in self.pages
 
     def download(self, url: str, target: Path, *, delay: float | None = None) -> bool:
         self.requests.append(url)
@@ -83,7 +87,7 @@ def test_fetch_revista_writes_importable_pack_incrementally(qdir: Path):
     }
     http = FakeHttp(pages)
     report = revista_dgt.fetch_revista(qdir, http=http, log=lambda _: None)
-    assert report.tests_fetched == [224, 226] and report.tests_missing == [225]
+    assert report.tests_fetched == [226, 224] and report.tests_missing == [225]  # newest first
     assert report.total_questions == 3
     pack = qdir / "revista-dgt" / "pack.json"
     data = json.loads(pack.read_text(encoding="utf-8"))
@@ -98,6 +102,31 @@ def test_fetch_revista_writes_importable_pack_incrementally(qdir: Path):
     again = revista_dgt.fetch_revista(qdir, http=http, log=lambda _: None)
     assert again.tests_fetched == [] and again.total_questions == 3
     assert revista_dgt.test_url(224) not in http.requests
+
+
+def test_fetch_revista_goes_newest_first_and_last_limits_it(qdir: Path):
+    pages = {
+        revista_dgt.INDEX_URL: INDEX,
+        revista_dgt.test_url(224): page("Febrero 2014", article(1, "A")),
+        revista_dgt.test_url(226): page("Junio 2014", article(1, "C")),
+        revista_dgt.test_url(227): page("Octubre 2014", article(1, "B")),
+    }
+    http = FakeHttp(pages)
+    report = revista_dgt.fetch_revista(qdir, last=2, http=http, log=lambda _: None)
+    # 225 does not exist and does not count: the two most recent published tests are 227 and 226.
+    assert report.tests_fetched == [227, 226] and report.tests_missing == []
+    tests = [url for url in http.requests if "Test-num-" in url]
+    assert tests.index(revista_dgt.test_url(227)) < tests.index(revista_dgt.test_url(226))
+    assert revista_dgt.test_url(224) not in tests
+
+    http.requests.clear()
+    again = revista_dgt.fetch_revista(qdir, last=2, http=http, log=lambda _: None)
+    assert again.tests_fetched == [] and again.total_questions == 2  # nothing new to download
+
+    full = revista_dgt.fetch_revista(qdir, http=http, log=lambda _: None)
+    assert full.tests_fetched == [224] and full.tests_missing == [225]
+    data = json.loads((qdir / "revista-dgt" / "pack.json").read_text(encoding="utf-8"))
+    assert [q["id"] for q in data["questions"]] == ["t224-q01", "t226-q01", "t227-q01"]
 
 
 CORRECTION = """
@@ -135,3 +164,91 @@ def test_dgt_web_parse_correction_and_matchers():
     )
     matches = [b["id"] for b in permits.find_all("button") if dgt_web.permit_b(b)]
     assert matches[0] == "x:data2:0:linkConsulta_"
+
+
+def zipped(text: str) -> bytes:
+    """A tiny zip standing in for an .apkg (the scan only sees zips)."""
+    out = BytesIO()
+    with zipfile.ZipFile(out, "w") as zf:
+        zf.writestr(zipfile.ZipInfo("collection.anki2", (2025, 3, 4, 0, 0, 0)), text)
+    return out.getvalue()
+
+
+class FakeGitHub:
+    """The GitHub API and the release download of the Anki deck."""
+
+    def __init__(self, tag: str, deck: bytes) -> None:
+        self.release(tag, deck)
+        self.downloads = 0
+
+    def release(self, tag: str, deck: bytes) -> None:
+        self.deck = deck
+        self.api = json.dumps(
+            {
+                "tag_name": tag,
+                "published_at": "2025-03-04T11:54:58Z",
+                "assets": [
+                    {"name": "Carnet.A1.apkg", "size": 1, "browser_download_url": "x"},
+                    {
+                        "name": anki.ASSET,
+                        "size": len(deck),
+                        "updated_at": "2025-03-04T11:53:22Z",
+                        "browser_download_url": f"https://github.com/dl/{tag}/{anki.ASSET}",
+                    },
+                ],
+            }
+        )
+
+    def get_text(self, url: str) -> str | None:
+        return self.api if url == anki.LATEST_URL else None
+
+    def download(self, url, target: Path, *, delay=None, progress=None) -> bool:
+        self.downloads += 1
+        target.write_bytes(self.deck)
+        if progress:
+            progress(len(self.deck), len(self.deck))
+        return True
+
+
+def test_fetch_anki_downloads_the_deck_once_with_its_settings(qdir: Path):
+    hub = FakeGitHub("3.0", zipped("v3"))
+    report = anki.fetch_anki(qdir, http=hub, log=lambda _: None)
+    deck = qdir / "anki" / anki.ASSET
+    assert report.downloaded and deck.read_bytes() == zipped("v3")
+    sidecar = deck.with_name(deck.name + ".toml")
+    text = sidecar.read_text(encoding="utf-8")
+    assert text.startswith(anki.SIDECAR_MARK) and 'date = "2025-03"' in text
+    assert (qdir / "anki" / anki.STATE).is_file()
+
+    again = anki.fetch_anki(qdir, http=hub, log=lambda _: None)
+    assert again.up_to_date and hub.downloads == 1
+
+    hub.release("4.0", zipped("version 4"))  # a new release: downloaded, settings refreshed
+    newer = anki.fetch_anki(qdir, http=hub, log=lambda _: None)
+    assert newer.downloaded and deck.read_bytes() == zipped("version 4")
+    assert "versión 4.0" in sidecar.read_text(encoding="utf-8")
+
+    # The library only sees the deck: the state file is hidden and the sidecar is claimed.
+    found = scan(qdir, [ApkgImporter()])
+    assert [s.rel for s in found.sources] == ["anki/Carnet.B.apkg"] and not found.ignored
+
+
+def test_fetch_anki_respects_a_deck_and_settings_you_put_there(qdir: Path):
+    hub = FakeGitHub("3.0", zipped("v3"))
+    deck = qdir / "anki" / anki.ASSET
+    deck.parent.mkdir(parents=True)
+    sidecar = deck.with_name(deck.name + ".toml")
+    sidecar.write_text('[pack]\nname = "Mi mazo"\n', encoding="utf-8")
+
+    deck.write_bytes(zipped("v3"))  # downloaded by hand: same size as the release
+    report = anki.fetch_anki(qdir, http=hub, log=lambda _: None)
+    assert report.up_to_date and hub.downloads == 0
+    assert sidecar.read_text(encoding="utf-8") == '[pack]\nname = "Mi mazo"\n'
+
+    (qdir / "anki" / anki.STATE).unlink()
+    deck.write_bytes(zipped("another deck of mine"))
+    report = anki.fetch_anki(qdir, http=hub, log=lambda _: None)
+    assert report.differs and deck.read_bytes() == zipped("another deck of mine")
+    report = anki.fetch_anki(qdir, refresh=True, http=hub, log=lambda _: None)
+    assert report.downloaded and deck.read_bytes() == zipped("v3")
+    assert sidecar.read_text(encoding="utf-8") == '[pack]\nname = "Mi mazo"\n'

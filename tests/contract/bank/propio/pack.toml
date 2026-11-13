@@ -1,0 +1,46 @@
+# FROZEN CONTRACT FIXTURE (theoricum/1, TOML). Never edit it to make a test pass: if it stops
+# importing exactly as tests/test_contract.py expects, the change broke users' packs.
+format = "theoricum/1"
+
+[pack]
+id = "contrato"
+name = "Pack de contrato"
+origin = "ia"
+date = "2026-09"
+priority = 15
+exclude_topics = ["alcohol"]
+
+[[questions]]
+id = "c-001"
+text = "¿Qué figura aparece en la imagen?"
+image = "img/cuadrado.png"
+options = ["Un círculo", "Un cuadrado", "Un triángulo"]
+answer = "B"
+topic = "otros"
+explanation = """
+Cuatro lados iguales y cuatro ángulos rectos.
+"""
+tags = ["formas", "contrato"]
+source = "Escrita a mano para los tests de contrato"
+
+[[questions]]
+id = "c-002"
+text = "Una pregunta con cuatro opciones y la respuesta en minúscula."
+options = ["Primera", "Segunda", "Tercera", "Cuarta"]
+answer = "d"
+topic = "señales"
+date = 2026-10-01
+
+[[questions]]
+id = "c-003"
+text = "Una pregunta con solo dos opciones."
+options = ["Sí", "No"]
+answer = "A"
+topic = "velocidad"
+
+[[questions]]
+id = "c-004"
+text = "Esta pregunta es de un tema excluido por el pack y no entra en el banco activo."
+options = ["Uno", "Dos"]
+answer = "A"
+topic = "alcohol"

@@ -23,7 +23,10 @@ class LibraryScreen(Screen[None]):
     def compose(self) -> ComposeResult:
         yield Header(show_clock=False, icon="🚗")
         with Vertical(id="library-body"):
-            yield Static(f"Carpeta: {self.app.paths.questions_dir}", classes="dim")
+            folders = "\n".join(f"{f.path}  ({f.label})" for f in self.app.paths.folders) or str(
+                self.app.paths.questions_dir
+            )
+            yield Static(f"Carpetas:\n{folders}", classes="dim")
             yield DataTable(id="sources", cursor_type="row", zebra_stripes=True)
             with VerticalScroll(id="detail-scroll"):
                 yield Static("", id="source-detail")

@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from theoricum.cli import build_parser, main
 
 from conftest import make_questions, write_pack
@@ -57,3 +59,14 @@ def test_parser_accepts_global_flags_after_command():
     assert (ns.command, ns.topic, ns.n, ns.seed) == ("study", "señales", 10, 3)
     ns = build_parser().parse_args(["--image-protocol", "unicode", "exam"])
     assert ns.image_protocol == "unicode" and ns.command == "exam"
+
+
+def test_fetch_sources_and_folder_flags_are_english():
+    parser = build_parser()
+    ns = parser.parse_args(["fetch", "signals", "--into", "x"])
+    assert (ns.source, ns.into) == ("signals", "x")
+    assert parser.parse_args(["fetch", "anki", "--refresh"]).source == "anki"
+    ns = parser.parse_args(["--no-local", "exam", "--no-global"])
+    assert ns.no_local and ns.no_global and ns.command == "exam"
+    with pytest.raises(SystemExit):
+        parser.parse_args(["fetch", "senales"])

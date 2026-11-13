@@ -19,9 +19,11 @@ from theoricum.media import MediaResolver
 from theoricum.models import Question
 from theoricum.practice import Practice
 from theoricum.topics import resolve_topic
-from theoricum.tui.images import ImageCache
+from theoricum.tui.images import ImageCache, describe_images, install_quality_hooks
 from theoricum.tui.screens.menu import MenuScreen
 from theoricum.tui.screens.test import TestScreen
+
+install_quality_hooks()
 
 IMAGE_CLASSES: dict[str, type[Widget]] = {
     "auto": AutoImage,
@@ -78,7 +80,7 @@ class TheoricumApp(App[None]):
         self.image_cls = image_cls
         self.store = Store.open(paths.db_path)
         self.practice = Practice(self.store, since=since, seed=seed)
-        self.media = MediaResolver(paths.questions_dir)
+        self.media = MediaResolver(paths.question_dirs)
         self.images = ImageCache(self.media)
         self.syncing = False
         self.sync_progress = ""
@@ -123,7 +125,7 @@ class TheoricumApp(App[None]):
         try:
             report = sync(
                 store,
-                self.paths.questions_dir,
+                self.paths.question_dirs,
                 force=force,
                 progress=lambda done, total, rel: self.call_from_thread(
                     self._sync_step, done, total, rel
@@ -157,6 +159,17 @@ class TheoricumApp(App[None]):
         if self._pending_start is not None:
             start, self._pending_start = self._pending_start, None
             self.launch(start)
+
+    def image_summary(self) -> str:
+        return describe_images(self.image_cls)
+
+    def zoom_image(
+        self, question: Question, title: str, session: TestSession | None = None
+    ) -> None:
+        from theoricum.tui.screens.zoom import ImageZoomScreen
+
+        if question.image_ref:
+            self.push_screen(ImageZoomScreen(question, title, session=session))
 
     def _refresh_menu(self) -> None:
         for screen in self.screen_stack:
