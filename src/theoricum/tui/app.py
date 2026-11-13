@@ -18,7 +18,7 @@ from theoricum.library import SyncReport, sync
 from theoricum.media import MediaResolver
 from theoricum.models import Question
 from theoricum.practice import Practice
-from theoricum.topics import resolve_topic
+from theoricum.topics import cli_name
 from theoricum.tui.images import ImageCache, describe_images, install_quality_hooks
 from theoricum.tui.screens.menu import MenuScreen
 from theoricum.tui.screens.test import TestScreen
@@ -41,9 +41,10 @@ EMPTY_MESSAGES = {
 
 @dataclass(frozen=True, slots=True)
 class StartRequest:
-    command: str = "menu"  # menu | exam | study | review | stats | saved
+    command: str = "menu"  # menu | exam | study | review | stats | saved | laws
     topic: str | None = None
     n: int | None = None
+    query: str = ""  # laws: what to search
 
 
 def describe_sync(report: SyncReport) -> str:
@@ -160,6 +161,44 @@ class TheoricumApp(App[None]):
             start, self._pending_start = self._pending_start, None
             self.launch(start)
 
+    def open_in_viewer(self, path, what: str) -> None:
+        """Open a PDF in the system viewer; a failure becomes a notification with the path."""
+        from theoricum.manual import open_document
+
+        try:
+            open_document(path)
+        except OSError as exc:
+            self.notify(f"No he podido abrir {what} ({exc}). Está en {path}", severity="error")
+            return
+        self.notify(f"Abriendo {what} en tu visor de PDF.", timeout=3)
+
+    def open_manual_for(self, question: Question) -> None:
+        """The topic of the DGT manual that explains a question (or the whole manual)."""
+        from theoricum.manual import load_manual
+
+        manual = load_manual(self.paths.data_dir)
+        if manual is None:
+            self.notify(
+                "Aún no tienes el manual: descárgalo desde Manual en el menú o con "
+                "`dgt fetch manual`.",
+                severity="warning",
+                timeout=6,
+            )
+            return
+        chapter = manual.for_topic(question.topic)
+        if chapter is None:
+            self.open_in_viewer(manual.full, "el manual completo")
+        else:
+            self.open_in_viewer(manual.path(chapter), f"el tema {chapter.number}: {chapter.title}")
+
+    def open_laws_for(self, question: Question | None = None, query: str = "") -> None:
+        from theoricum.laws import TOPIC_QUERIES
+        from theoricum.tui.screens.laws import LawsScreen
+
+        if question is not None:
+            query = TOPIC_QUERIES.get(question.topic, "")
+        self.push_screen(LawsScreen(query))
+
     def image_summary(self) -> str:
         return describe_images(self.image_cls)
 
@@ -186,10 +225,11 @@ class TheoricumApp(App[None]):
             case "review":
                 self.start_test(Mode.REVIEW, n=start.n)
             case "study" if start.topic:
-                topic = resolve_topic(start.topic)
+                topic = start.topic  # the internal slug (the CLI translates the English name)
                 if not any(q.topic == topic for q in self.practice.pool):
                     self.notify(
-                        f"No hay preguntas del tema «{start.topic}». Mira los disponibles con `dgt topics`.",
+                        f"No hay preguntas del tema «{cli_name(topic)}». Mira los disponibles con "
+                        "`dgt topics`.",
                         severity="error",
                         timeout=8,
                     )
@@ -205,6 +245,8 @@ class TheoricumApp(App[None]):
                 from theoricum.tui.screens.saved import SavedScreen
 
                 self.push_screen(SavedScreen())
+            case "laws":
+                self.open_laws_for(query=start.query)
 
     def start_test(
         self,

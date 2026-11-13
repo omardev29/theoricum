@@ -1,4 +1,9 @@
-# Temas canónicos. Parten de los bloques de las «Fichas de seguimiento – Permiso B» de la DGT,
+# Temas canónicos.
+#
+# - `slug`: identificador interno, el que se escribe en los packs (`topic = "senales"`). No cambia
+#   nunca: los packs y el historial dependen de él.
+# - `cli`: el nombre en la línea de comandos, siempre en inglés (`dgt study --topic signals`,
+#   `dgt manual signals`). Parten de los bloques de las «Fichas de seguimiento – Permiso B» de la DGT,
 # divididos en temas prácticos.
 #
 # Clasificación automática (solo para preguntas sin tema):
@@ -11,6 +16,7 @@
 
 [[topic]]
 slug = "senales"
+cli = "signals"
 name = "Señales"
 aliases = ["senalizacion", "señalización", "senales-de-trafico", "marcas-viales", "semaforos"]
 keywords = [
@@ -23,12 +29,14 @@ keywords = [
 
 [[topic]]
 slug = "velocidad"
+cli = "speed"
 name = "Velocidad"
 aliases = ["velocidades", "limites-de-velocidad"]
 keywords = ["velocidad*", "km/h", "kilometros por hora", "limite generico", "limites genericos"]
 
 [[topic]]
 slug = "prioridad"
+cli = "priority"
 name = "Prioridad e intersecciones"
 aliases = ["prioridad-de-paso", "intersecciones"]
 keywords = [
@@ -38,12 +46,14 @@ keywords = [
 
 [[topic]]
 slug = "adelantamiento"
+cli = "overtaking"
 name = "Adelantamiento"
 aliases = ["adelantamientos", "adelantar"]
 keywords = ["adelant*", "rebas*"]
 
 [[topic]]
 slug = "maniobras"
+cli = "maneuvers"
 name = "Maniobras"
 aliases = ["incorporacion", "cambio-de-direccion", "marcha-atras"]
 keywords = [
@@ -54,6 +64,7 @@ keywords = [
 
 [[topic]]
 slug = "estacionamiento"
+cli = "parking"
 name = "Parada y estacionamiento"
 aliases = ["parada", "parada-y-estacionamiento", "aparcamiento"]
 keywords = [
@@ -63,6 +74,7 @@ keywords = [
 
 [[topic]]
 slug = "alumbrado"
+cli = "lights"
 name = "Alumbrado"
 aliases = ["luces"]
 keywords = [
@@ -74,6 +86,7 @@ keywords = [
 
 [[topic]]
 slug = "vias"
+cli = "roads"
 name = "La vía"
 aliases = ["la-via", "tipos-de-via", "autopistas", "tuneles"]
 keywords = [
@@ -85,6 +98,7 @@ keywords = [
 
 [[topic]]
 slug = "distancias"
+cli = "distances"
 name = "Distancias y frenado"
 aliases = ["distancia-de-seguridad", "frenado"]
 keywords = [
@@ -94,6 +108,7 @@ keywords = [
 
 [[topic]]
 slug = "documentacion"
+cli = "documents"
 name = "Documentación y permisos"
 aliases = ["documentos", "permisos", "puntos"]
 keywords = [
@@ -106,6 +121,7 @@ keywords = [
 
 [[topic]]
 slug = "carga"
+cli = "cargo"
 name = "Carga, pasajeros y remolques"
 aliases = ["carga-y-pasajeros", "remolques", "pasajeros"]
 keywords = [
@@ -115,6 +131,7 @@ keywords = [
 
 [[topic]]
 slug = "seguridad"
+cli = "safety"
 name = "Seguridad activa y pasiva"
 aliases = ["seguridad-vial", "seguridad-activa", "seguridad-pasiva", "adas"]
 keywords = [
@@ -126,6 +143,7 @@ keywords = [
 
 [[topic]]
 slug = "alcohol"
+cli = "alcohol"
 name = "Alcohol y drogas"
 aliases = ["alcohol-y-drogas", "drogas"]
 keywords = [
@@ -135,6 +153,7 @@ keywords = [
 
 [[topic]]
 slug = "riesgos"
+cli = "risks"
 name = "Factores de riesgo"
 aliases = ["factores-de-riesgo", "fatiga", "medicamentos"]
 keywords = [
@@ -146,6 +165,7 @@ keywords = [
 
 [[topic]]
 slug = "vulnerables"
+cli = "vulnerable-users"
 name = "Usuarios vulnerables"
 aliases = ["usuarios-vulnerables", "peatones", "ciclistas"]
 keywords = [
@@ -155,6 +175,7 @@ keywords = [
 
 [[topic]]
 slug = "mecanica"
+cli = "mechanics"
 name = "Mecánica y mantenimiento"
 aliases = ["mantenimiento", "vehiculo"]
 keywords = [
@@ -166,6 +187,7 @@ keywords = [
 
 [[topic]]
 slug = "accidentes"
+cli = "accidents"
 name = "Accidentes y primeros auxilios"
 aliases = ["primeros-auxilios", "siniestros"]
 keywords = [
@@ -176,6 +198,7 @@ keywords = [
 
 [[topic]]
 slug = "medioambiente"
+cli = "environment"
 name = "Conducción eficiente y medio ambiente"
 aliases = ["medio-ambiente", "conduccion-eficiente"]
 keywords = [
@@ -186,6 +209,7 @@ keywords = [
 
 [[topic]]
 slug = "otros"
+cli = "other"
 name = "Otros"
 aliases = ["general", "varios"]
 keywords = []

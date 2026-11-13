@@ -29,6 +29,9 @@ class Change:
     pattern: re.Pattern[str]
     also: re.Pattern[str] | None = None
     topics: frozenset[str] = frozenset()
+    title: str = ""  # for the sheet of changes (see `novelties`)
+    summary: str = ""
+    manual: tuple[int, ...] = ()  # chapters of the DGT manual it affects
 
     def applies_to(self, question: Question, text: str) -> bool:
         """`text` is the normalized statement and right answer (see `notices_for`)."""
@@ -57,6 +60,9 @@ def parse_changes(raw: str) -> tuple[Change, ...]:
                 pattern=pattern,
                 also=keyword_pattern(entry.get("also", [])),
                 topics=frozenset(resolve_topic(t) for t in entry.get("topics", [])),
+                title=" ".join(str(entry.get("title", "")).split()),
+                summary=" ".join(str(entry.get("summary", "")).split()),
+                manual=tuple(int(n) for n in entry.get("manual", [])),
             )
         )
     return tuple(changes)
@@ -66,6 +72,13 @@ def parse_changes(raw: str) -> tuple[Change, ...]:
 def load_changes() -> tuple[Change, ...]:
     raw = resources.files("theoricum.data").joinpath("changes.toml").read_text(encoding="utf-8")
     return parse_changes(raw)
+
+
+def novelties(after: str | None = None) -> list[Change]:
+    """The sheet of changes, most recent first; only those in force after `after` if given (e.g.
+    the date of the DGT manual)."""
+    changes = [c for c in load_changes() if c.title and (after is None or c.since > after)]
+    return sorted(changes, key=lambda c: c.since, reverse=True)
 
 
 def notices_for(question: Question, changes: Iterable[Change] | None = None) -> tuple[Notice, ...]:

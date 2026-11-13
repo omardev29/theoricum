@@ -24,7 +24,7 @@ def test_check_topics_export_import(tmp_path: Path, capsys, monkeypatch):
     assert "✓ p.json" in out and "Banco activo: 5 preguntas" in out
 
     assert main([*args(tmp_path), "topics"]) == 0
-    assert "velocidad" in capsys.readouterr().out
+    assert "speed" in capsys.readouterr().out  # the English name to use with --topic
 
     monkeypatch.chdir(tmp_path)
     assert main([*args(tmp_path), "export", "-o", str(tmp_path / "copia.zip")]) == 0
@@ -55,8 +55,8 @@ def test_check_reports_errors_with_exit_code(tmp_path: Path, capsys):
 
 
 def test_parser_accepts_global_flags_after_command():
-    ns = build_parser().parse_args(["study", "--topic", "señales", "-n", "10", "--seed", "3"])
-    assert (ns.command, ns.topic, ns.n, ns.seed) == ("study", "señales", 10, 3)
+    ns = build_parser().parse_args(["study", "--topic", "signals", "-n", "10", "--seed", "3"])
+    assert (ns.command, ns.topic, ns.n, ns.seed) == ("study", "signals", 10, 3)
     ns = build_parser().parse_args(["--image-protocol", "unicode", "exam"])
     assert ns.image_protocol == "unicode" and ns.command == "exam"
 
@@ -70,3 +70,14 @@ def test_fetch_sources_and_folder_flags_are_english():
     assert ns.no_local and ns.no_global and ns.command == "exam"
     with pytest.raises(SystemExit):
         parser.parse_args(["fetch", "senales"])
+
+
+def test_topics_are_english_on_the_command_line(tmp_path: Path, capsys):
+    write_pack(tmp_path / "questions" / "p.json", make_questions(3, topic="senales"), {"id": "p"})
+    assert main([*args(tmp_path), "topics"]) == 0
+    out = capsys.readouterr().out
+    assert "signals" in out and "Señales" in out  # the name to type, and the one to read
+    # A Spanish topic name is refused before the interface starts, with the English one.
+    assert main([*args(tmp_path), "study", "--topic", "señales"]) == 2
+    err = capsys.readouterr().err
+    assert "«signals»" in err and "inglés" in err

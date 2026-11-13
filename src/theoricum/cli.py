@@ -12,7 +12,9 @@ from theoricum import __version__
 from theoricum.config import NoQuestionsFolder, Paths, resolve_paths
 
 IMAGE_PROTOCOLS = ("auto", "tgp", "sixel", "halfcell", "unicode")
-FETCH_SOURCES = ("revista-dgt", "dgt-web", "signals", "anki")
+FETCH_SOURCES = ("revista-dgt", "dgt-web", "signals", "anki", "manual", "laws")
+# Study material, not questions: it goes to the data folder.
+DATA_SOURCES = ("manual", "laws")
 # File that tells where each source lives, to update it in the folder that already has it.
 FETCH_MARKERS = {
     "revista-dgt": "revista-dgt/pack.json",
@@ -119,7 +121,10 @@ def build_parser() -> argparse.ArgumentParser:
         "study", parents=[common], help="estudio: corrige cada respuesta al momento"
     )
     study.add_argument(
-        "--topic", metavar="TEMA", help="solo preguntas de este tema (ver `dgt topics`)"
+        "--topic",
+        metavar="TEMA",
+        help="solo preguntas de este tema, con su nombre en inglés: signals, speed… "
+        "(ver `dgt topics`)",
     )
     study.add_argument("-n", type=int, metavar="N", default=30, help="número de preguntas (30)")
     review = sub.add_parser(
@@ -131,6 +136,22 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub.add_parser("stats", parents=[common], help="abre las estadísticas")
     sub.add_parser("saved", parents=[common], help="abre tus preguntas guardadas")
+    manual = sub.add_parser(
+        "manual",
+        parents=[common],
+        help="abre el manual del permiso B de la DGT (entero o un tema) en tu visor de PDF",
+    )
+    manual.add_argument(
+        "chapter",
+        nargs="?",
+        metavar="TEMA",
+        help="número de tema (1-17), un tema de theoricum en inglés (signals, speed…; ver "
+        "`dgt topics`) o «points» para el carnet por puntos",
+    )
+    laws = sub.add_parser(
+        "laws", parents=[common], help="abre la normativa de tráfico del BOE, con buscador"
+    )
+    laws.add_argument("query", nargs="*", metavar="BÚSQUEDA", help="palabras que buscar")
     sub.add_parser(
         "check", parents=[common], help="sincroniza y valida las preguntas sin abrir la interfaz"
     )
@@ -144,7 +165,8 @@ def build_parser() -> argparse.ArgumentParser:
         "source",
         choices=FETCH_SOURCES,
         help="revista-dgt: tests de la revista de la DGT · dgt-web: simulador oficial · "
-        "signals: catálogo oficial de señales (BOE) · anki: mazo de la comunidad «Carnet B»",
+        "signals: catálogo oficial de señales (BOE) · anki: mazo de la comunidad «Carnet B» · "
+        "manual: manual del permiso B de la DGT · laws: normativa de tráfico del BOE",
     )
     fetch.add_argument("--into", metavar="DIR", help=into_help)
     fetch.add_argument("--refresh", action="store_true", help="vuelve a descargarlo todo")
@@ -301,7 +323,7 @@ def _print_notices(pool) -> None:
 
 
 def cmd_topics(args: argparse.Namespace) -> int:
-    from theoricum.topics import topic_name
+    from theoricum.topics import cli_name, topic_name
 
     store, _ = _open_synced_store(_paths(args), verbose=False)
     topics = Counter(q.topic for q in store.load_questions(since=getattr(args, "since", None)))
@@ -309,9 +331,10 @@ def cmd_topics(args: argparse.Namespace) -> int:
     if not topics:
         print("No hay preguntas. Ejecuta `dgt check` para ver qué pasa con tus carpetas.")
         return 1
-    print(f"{'TEMA':<16} {'NOMBRE':<40} {'PREGUNTAS':>9}")
+    print(f"{'--topic':<18} {'TEMA':<40} {'PREGUNTAS':>9}")
     for slug, count in sorted(topics.items(), key=lambda item: topic_name(item[0])):
-        print(f"{slug:<16} {topic_name(slug):<40} {fmt_int(count):>9}")
+        print(f"{cli_name(slug):<18} {topic_name(slug):<40} {fmt_int(count):>9}")
+    print("\nPor ejemplo: dgt study --topic signals · dgt manual signals")
     return 0
 
 
@@ -420,11 +443,49 @@ FETCHERS = {
 }
 
 
+def _fetch_manual(args: argparse.Namespace, data_dir: Path) -> int:
+    from theoricum.fetchers.manual import TITLE, fetch_manual
+
+    report = fetch_manual(data_dir, refresh=args.refresh, log=lambda m: print(m, flush=True))
+    state = "Ya tenías" if report.already else "Listo:"
+    print(f"\n{state} el «{TITLE}», {len(report.chapters)} temas en {report.folder}.")
+    print("Ábrelo con `dgt manual` o un tema con `dgt manual signals` (o la tecla m en un test).")
+    print("Es material de la DGT: úsalo para tu estudio personal.")
+    return 0
+
+
+def _fetch_laws(args: argparse.Namespace, data_dir: Path) -> int:
+    from theoricum.fetchers.laws import fetch_laws
+
+    report = fetch_laws(data_dir, log=lambda m: print(m, flush=True))
+    print()
+    for name, count, updated in report.laws:
+        print(f"  ✓ {name}: {fmt_int(count)} artículos, actualizado el {updated or '¿?'}")
+    print("Consúltala con `dgt laws` (o la tecla n en un test). Fuente: BOE, texto consolidado.")
+    return 0
+
+
 def cmd_fetch(args: argparse.Namespace) -> int:
     if args.last is not None and (args.source != "revista-dgt" or args.last < 1):
         print("--last solo vale para revista-dgt y debe ser 1 o más.", file=sys.stderr)
         return 2
+    if args.source in DATA_SOURCES and args.into:
+        print(
+            "--into solo vale para preguntas: el manual y la normativa van a tu carpeta de datos.",
+            file=sys.stderr,
+        )
+        return 2
     paths = _paths(args)
+    if args.source in DATA_SOURCES:
+        fetch = _fetch_manual if args.source == "manual" else _fetch_laws
+        try:
+            return fetch(args, paths.data_dir)
+        except ConnectionError as exc:
+            print(f"Error de red: {exc}", file=sys.stderr)
+            return 1
+        except ValueError as exc:
+            print(f"No se pudo leer lo descargado: {exc}", file=sys.stderr)
+            return 1
     target = _fetch_target(args, paths)
     target.mkdir(parents=True, exist_ok=True)
     print(f"Carpeta: {target}")
@@ -443,6 +504,67 @@ def cmd_fetch(args: argparse.Namespace) -> int:
             f"Ojo: {target} no es una de tus carpetas de preguntas; usa --questions-dir para leerla."
         )
     return code
+
+
+def _english_only(command: str, exc: Exception) -> str:
+    from theoricum.topics import SpanishTopicName
+
+    assert isinstance(exc, SpanishTopicName)
+    return (
+        f"Los comandos van en inglés: usa «{exc.cli}» en vez de «{exc.value}» "
+        f"(por ejemplo, `dgt {command} {exc.cli}`). `dgt topics` lista los nombres."
+    )
+
+
+def cmd_manual(args: argparse.Namespace) -> int:
+    from theoricum.manual import POINTS, TOPIC_CHAPTERS, load_manual, open_document
+    from theoricum.models import date_label
+    from theoricum.topics import SpanishTopicName, cli_name
+    from theoricum.validity import novelties
+
+    paths = _paths(args)
+    manual = load_manual(paths.data_dir)
+    if manual is None:
+        print("Aún no tienes el manual: lo descargo ahora.\n")
+        try:
+            _fetch_manual(argparse.Namespace(refresh=False), paths.data_dir)
+        except (ConnectionError, ValueError) as exc:
+            print(f"No se pudo descargar el manual: {exc}", file=sys.stderr)
+            return 1
+        manual = load_manual(paths.data_dir)
+        if manual is None:
+            return 1
+    target, what = manual.full, "el manual completo"
+    if args.chapter:
+        try:
+            chapter = manual.find(args.chapter)
+        except SpanishTopicName as exc:
+            print(_english_only("manual", exc), file=sys.stderr)
+            return 2
+        if chapter is None:
+            print(f"No encuentro el tema «{args.chapter}». Puedes usar:", file=sys.stderr)
+            for c in manual.chapters:
+                print(f"  {c.number:>2}. {c.title}", file=sys.stderr)
+            names = ", ".join(sorted(cli_name(t) for t in TOPIC_CHAPTERS))
+            print(f"o un tema de theoricum ({names}) o «{POINTS}».", file=sys.stderr)
+            return 2
+        target, what = manual.path(chapter), f"el tema {chapter.number}: {chapter.title}"
+    else:
+        print(f"{manual.title}. Temas:")
+        for c in manual.chapters:
+            print(f"  {c.number:>2}. {c.title} (página {c.first_page})")
+    changes = novelties(after=manual.date)
+    if changes:
+        print(f"\nOjo: el manual es de {date_label(manual.date)}. Desde entonces ha cambiado:")
+        for change in changes:
+            print(f"  · {change.title} ({date_label(change.since)}): {change.summary}")
+    print(f"\nAbriendo {what}: {target}")
+    try:
+        open_document(target)
+    except OSError as exc:
+        print(f"No he podido abrirlo ({exc}). Ábrelo tú desde esa ruta.", file=sys.stderr)
+        return 1
+    return 0
 
 
 def cmd_export(args: argparse.Namespace) -> int:
@@ -509,16 +631,25 @@ def _image_protocol(args: argparse.Namespace) -> str:
 
 
 def cmd_tui(args: argparse.Namespace) -> int:
+    from theoricum.topics import SpanishTopicName, topic_from_cli
     from theoricum.tui.terminal import guard_image_probe
 
+    topic = getattr(args, "topic", None)
+    if topic:
+        try:
+            topic = topic_from_cli(topic)
+        except SpanishTopicName as exc:
+            print(_english_only("study --topic", exc), file=sys.stderr)
+            return 2
     guard_image_probe()
     # Importing the TUI makes textual-image probe the terminal; this must happen before App.run().
     from theoricum.tui.app import StartRequest, run_app
 
     start = StartRequest(
         command=args.command or "menu",
-        topic=getattr(args, "topic", None),
+        topic=topic,
         n=getattr(args, "n", None),
+        query=" ".join(getattr(args, "query", None) or []),
     )
     return run_app(
         paths=_paths(args),
@@ -531,6 +662,7 @@ def cmd_tui(args: argparse.Namespace) -> int:
 
 COMMANDS = {
     "check": cmd_check,
+    "manual": cmd_manual,
     "topics": cmd_topics,
     "fetch": cmd_fetch,
     "export": cmd_export,

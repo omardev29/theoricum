@@ -13,10 +13,17 @@
 #   muestra al corregir;
 # - "info": solo se muestra la nota al corregir.
 #
-# Añade solo cambios con base legal comprobada y cita la norma en la nota.
+# `title` y `summary` forman la hoja de novedades (Manual en el menú y `dgt manual`): lo que ha
+# cambiado desde el manual de la DGT (diciembre de 2023) y desde preguntas más antiguas. `manual`
+# son los temas de ese manual a los que afecta.
+#
+# Añade solo cambios con base legal comprobada y cita la norma en la nota y en el resumen.
 
 [[change]]
 id = "v16"
+title = "Baliza V-16 en lugar de los triángulos"
+summary = """Desde el 1 de enero de 2026 la baliza luminosa V-16 conectada es obligatoria para señalizar un vehículo inmovilizado y sustituye a los triángulos de preseñalización de peligro (RD 159/2021)."""
+manual = [5, 16]
 since = "2026-01"
 level = "warning"
 # «triángulo» a secas no: también es la marca de ceda el paso o la forma de una señal.
@@ -29,6 +36,9 @@ triángulos de preseñalización de peligro (RD 159/2021). Esta pregunta es ante
 
 [[change]]
 id = "convencional-90"
+title = "90 km/h en carreteras convencionales"
+summary = """Desde el 29 de enero de 2019 turismos y motocicletas pueden ir como máximo a 90 km/h en las carreteras convencionales; desaparece el límite de 100 km/h con arcén pavimentado (RD 1514/2018)."""
+manual = [10]
 since = "2019-02"
 level = "warning"
 topics = ["velocidad"]
@@ -39,6 +49,9 @@ pavimentado (RD 1514/2018). Esta pregunta es anterior."""
 
 [[change]]
 id = "adelantar-20"
+title = "Ya no se puede superar el límite para adelantar"
+summary = """Desde el 21 de marzo de 2022 no se puede rebasar en 20 km/h el límite de velocidad para adelantar en carreteras convencionales (Ley 18/2021)."""
+manual = [10, 11]
 since = "2022-04"
 level = "warning"
 keywords = ["adelant*"]
@@ -48,6 +61,9 @@ para adelantar en carreteras convencionales (Ley 18/2021). Esta pregunta es ante
 
 [[change]]
 id = "urbana-30"
+title = "30 km/h en ciudad"
+summary = """Desde el 11 de mayo de 2021 el límite en vías urbanas es de 30 km/h si hay un único carril por sentido, 20 km/h con plataforma única de calzada y acera, y 50 km/h con dos o más carriles por sentido (RD 970/2020)."""
+manual = [10]
 since = "2021-06"
 level = "warning"
 topics = ["velocidad"]
@@ -58,6 +74,9 @@ por sentido, 20 km/h con plataforma única y 50 km/h con dos o más carriles por
 
 [[change]]
 id = "vmp"
+title = "Patinetes eléctricos (VMP)"
+summary = """Desde el 2 de enero de 2021 los patinetes eléctricos son vehículos de movilidad personal, con normas propias: no pueden circular por las aceras (RD 970/2020)."""
+manual = [1, 4]
 since = "2021-01"
 level = "warning"
 keywords = ["patinete*", "movilidad personal", "vmp"]
@@ -66,6 +85,9 @@ con normas propias (RD 970/2020). Esta pregunta es anterior."""
 
 [[change]]
 id = "puntos-2022"
+title = "Nuevas sanciones del permiso por puntos"
+summary = """Desde el 21 de marzo de 2022 el móvil en la mano resta 6 puntos, y no llevar cinturón, casco o sistema de retención infantil, 4 (Ley 18/2021)."""
+manual = [18]
 since = "2022-04"
 level = "info"
 keywords = [
@@ -80,6 +102,9 @@ vigente."""
 
 [[change]]
 id = "catalogo-senales-2025"
+title = "Nuevo catálogo oficial de señales"
+summary = """El RD 465/2025 (BOE del 17-6-2025) aprueba un nuevo catálogo de señales que cambia la forma, el código o el significado de algunas. Las señales antiguas siguen valiendo mientras no se sustituyan. `dgt fetch signals` genera preguntas con el catálogo nuevo."""
+manual = [8]
 since = "2025-06-17"
 level = "info"
 topics = ["senales"]
@@ -90,6 +115,9 @@ antiguas siguen siendo válidas mientras no se sustituyan."""
 
 [[change]]
 id = "vulnerables-2026"
+title = "Usuarios vulnerables"
+summary = """El RD 518/2026, en vigor desde el 1 de octubre de 2026, cambia normas que protegen a ciclistas, peatones, motoristas y otros usuarios vulnerables."""
+manual = [4, 14]
 since = "2026-10"
 level = "info"
 topics = ["vulnerables"]

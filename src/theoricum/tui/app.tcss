@@ -407,3 +407,65 @@ Screen.-narrow #cards {
     height: 1fr;
     margin-top: 1;
 }
+
+/* ---------- Manual y normativa ---------- */
+
+#manual-body {
+    height: 1fr;
+    padding: 1 2;
+}
+
+#manual-left {
+    width: 1fr;
+    max-width: 64;
+    height: 1fr;
+}
+
+#manual-title, #manual-missing {
+    height: auto;
+    margin-bottom: 1;
+}
+
+#chapters {
+    height: 1fr;
+}
+
+#novelties {
+    width: 1fr;
+    height: 1fr;
+    margin-left: 2;
+    padding: 0 1;
+    border: round $secondary;
+}
+
+#laws-body {
+    height: 1fr;
+    padding: 1 2 0 2;
+}
+
+#laws-search {
+    margin-bottom: 1;
+}
+
+#laws-main {
+    height: 1fr;
+}
+
+#laws-results {
+    width: 2fr;
+    max-width: 60;
+    height: 1fr;
+}
+
+#laws-article {
+    width: 3fr;
+    height: 1fr;
+    margin-left: 2;
+    padding: 0 1;
+    border: round $secondary;
+}
+
+#laws-status {
+    height: auto;
+    margin-top: 1;
+}

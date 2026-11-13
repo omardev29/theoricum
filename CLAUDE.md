@@ -62,9 +62,16 @@ Enforcement:
 ## Language rules (mandatory)
 
 - **English**: everything you type on the command line — commands, subcommands, flags and their
-  values (`dgt fetch signals --into DIR`, `dgt exam --no-global`) — plus identifiers, comments,
+  values (`dgt fetch signals --into DIR`, `dgt exam --no-global`), **including topic names**
+  (`--topic signals`, `dgt manual signals`, `dgt manual points`) — plus identifiers, comments,
   docstrings, commit messages and the docs for developers and agents (this file,
   `tests/contract/README.md`).
+  - Each topic has an English `cli` name in `data/topics.toml`; `topics.topic_from_cli()` maps it
+    to the internal slug and refuses Spanish names (`SpanishTopicName`) pointing to the English
+    one. The Spanish slugs (`senales`) are pack data (frozen) and never appear on the command line.
+  - Free text is content, not a command: search words (`dgt laws velocidad`) and file paths.
+  - Proper names keep their own name: `dgt fetch revista-dgt` is the magazine «Revista DGT», a
+    name rather than a concept, so it stays in Spanish (owner's decision, 2026-11-13).
 - **Spanish**: everything the user reads — questions, the TUI, `--help` texts, CLI messages
   (validation errors too), the README and the comments of data files users may open
   (`data/*.toml`, generated sidecars). The audience is people taking the exam in Spain, so there
@@ -135,9 +142,12 @@ src/theoricum/
   validity.py    regulatory changes (data/changes.toml) -> notices on older questions
   media.py       resolves image_ref ("file:…", "apkg:…!member") to bytes
   practice.py    store <-> engine glue used by the TUI (build tests, record answers, stats)
+  manual.py      the downloaded DGT manual: topic -> chapter, opening PDFs in the system viewer
+  laws.py        the downloaded traffic law: loading and accent-insensitive search
   importers/     READ-ONLY adapters over questions/: native (JSON/TOML), apkg, anki_json (CrowdAnki)
   fetchers/      `dgt fetch` downloaders (http.py: polite client with streamed downloads;
-                 revista_dgt, dgt_web, signals, anki)
+                 questions: revista_dgt, dgt_web, signals, anki; study material, into the data
+                 folder: manual, laws)
   library/       scan of questions/ and incremental sync into SQLite
   db/            schema, migrations (PRAGMA user_version), queries (store.py)
   engine/        PURE test logic, no Textual, no SQLite: rules, session, selection, grading,
@@ -265,6 +275,19 @@ src/theoricum/
   replaced with `--refresh`. Its author says the questions come from a driving school website,
   so the command only automates the public download, prints a private-use warning, and the deck
   is never bundled with theoricum (owner's decision, 2026-11-13). Commercial test sites: never.
+- **DGT manual** (`dgt fetch manual`, `fetchers/manual.py`, `manual.py`): «Manual del Permiso B
+  en Lectura Fácil» (DGT, content of December 2023, 476 pages, 17 topics + points annex, links to
+  DGT videos), personal use. Downloaded to `<data dir>/manual/` and split into one PDF per topic
+  with its bookmarks (`index.json`), so any viewer opens a topic directly. `TOPIC_CHAPTERS` maps
+  theoricum topics to chapters; `open_document` uses `xdg-open` / `open` / `os.startfile`,
+  detached. Not in the questions folders, not in exports (it is downloadable again).
+- **Traffic law** (`dgt fetch laws`, `fetchers/laws.py`, `laws.py`): RGC, LSV, RGCond and RGV from
+  the BOE consolidated legislation API (`Accept: application/xml` is required). Each article
+  comes with all its historical versions: keep the one in force today (or the first one, marked
+  as future), its TÍTULO/CAPÍTULO/SECCIÓN/ANEXO context and the BOE notes (`blockquote`) apart.
+  Stored in `<data dir>/laws/*.json`.
+- **Sheet of changes**: `title`, `summary` and `manual` chapters in `data/changes.toml`,
+  `validity.novelties()`; shown in the Manual screen and by `dgt manual`.
 - Users back up questions and history with `dgt export` to their private cloud and restore with
   `dgt import`.
 
@@ -333,9 +356,13 @@ self-made demo pack that documents the format.
 dgt                                  control panel
 dgt exam | study [--topic T] [-n N] | review [-n N]
 dgt topics | stats | saved | check
-dgt fetch {revista-dgt,dgt-web,signals,anki} [--refresh] [--into DIR] [--last N (revista-dgt)]
+dgt fetch {revista-dgt,dgt-web,signals,anki,manual,laws} [--refresh] [--into DIR (questions)]
+          [--last N (revista-dgt)]
+dgt manual [TOPIC: 1-17 | signals, speed… | points] | dgt laws [SEARCH WORDS]
 dgt export [-o FILE] [--no-history] | dgt import FILE [--overwrite] [--into DIR]
 global: --questions-dir --no-local --no-global --data-dir --image-protocol --since YYYY[-MM]
         --seed --version
 test keys: a/b/c answer · ←/→ move · Enter submit/next · g save · x disable · z zoom image
+           m manual topic · n traffic law (in an exam, only after the correction)
+menu: 1-7 tests, stats, library · 8 Manual (topics + sheet of changes) · 9 Normativa (search)
 ```

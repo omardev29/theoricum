@@ -23,6 +23,9 @@ TEST_HELP = """\
 [b]g[/]               guardar la pregunta en «Preguntas guardadas» (o quitarla)
 [b]x[/]               desactivar la pregunta (cuando ya ves la respuesta)
 [b]z[/]               ver la imagen a pantalla completa
+[b]m[/]               abrir el tema del manual de la DGT de esta pregunta
+[b]n[/]               buscar en la normativa del BOE
+                  (en el examen, m y n solo funcionan después de corregir)
 
 «↻ repaso 1/3»: la fallaste antes; sale del repaso con 3 aciertos seguidos.
 [b]r[/]               al corregir: repasar ahora las falladas
@@ -47,6 +50,8 @@ class TestScreen(Screen[None]):
         Binding("g", "toggle_saved", "Guardar"),
         Binding("x", "toggle_disabled", "Desactivar"),
         Binding("z", "zoom", "Ampliar imagen"),
+        Binding("m", "manual", "Manual"),
+        Binding("n", "laws", "Normativa"),
         Binding("escape", "leave", "Salir"),
         Binding("question_mark", "help", "Ayuda", key_display="?"),
     ]
@@ -140,6 +145,8 @@ class TestScreen(Screen[None]):
             return self.session.reveals()
         if action == "zoom":
             return self.session.question.image_ref is not None
+        if action in ("manual", "laws"):
+            return not self.is_exam or finished  # in an exam they would be a crib sheet
         return True
 
     # --- actions ----------------------------------------------------------------------------
@@ -311,6 +318,12 @@ class TestScreen(Screen[None]):
         session = self.session
         title = f"Pregunta {session.current + 1} de {len(session)}"
         self.app.zoom_image(session.question, title, session)
+
+    def action_manual(self) -> None:
+        self.app.open_manual_for(self.session.question)
+
+    def action_laws(self) -> None:
+        self.app.open_laws_for(self.session.question)
 
     def action_help(self) -> None:
         body = f"{TEST_HELP}\n{self.app.image_summary()}"

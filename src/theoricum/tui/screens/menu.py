@@ -27,6 +27,9 @@ MENU_HELP = """\
 [b]Por tema[/]: estudio de un solo tema.
 [b]Guardadas[/]: las preguntas que guardas pulsando [b]g[/] en cualquier test;
   puedes verlas con la solución o estudiarlas todas.
+[b]Manual[/]: el manual del permiso B de la DGT por temas (se abre en tu visor
+  de PDF) y las novedades de la norma posteriores a él.
+[b]Normativa[/]: los artículos vigentes del BOE, con buscador.
 
 Para añadir preguntas, déjalas en la carpeta questions/ (JSON/TOML, .apkg o
 CrowdAnki), descarga la revista con [b]dgt fetch revista-dgt[/] o las señales
@@ -41,6 +44,8 @@ ITEMS = [
     ("saved", "5", "Guardadas", "las que guardas con g"),
     ("stats", "6", "Estadísticas", "aprobados, temas flojos, evolución"),
     ("library", "7", "Biblioteca", "fuentes de preguntas y avisos"),
+    ("manual", "8", "Manual", "el manual de la DGT por temas y las novedades"),
+    ("laws", "9", "Normativa", "los artículos del BOE, con buscador"),
     ("quit", "q", "Salir", ""),
 ]
 
@@ -140,6 +145,12 @@ class MenuScreen(Screen[None]):
                 from theoricum.tui.screens.library import LibraryScreen
 
                 app.push_screen(LibraryScreen())
+            case "manual":
+                from theoricum.tui.screens.manual import ManualScreen
+
+                app.push_screen(ManualScreen())
+            case "laws":
+                app.open_laws_for()
             case "quit":
                 app.exit()
 

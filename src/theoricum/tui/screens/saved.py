@@ -121,6 +121,8 @@ class BrowseScreen(Screen[None]):
         Binding("right", "move(1)", "Siguiente", key_display="→", priority=True),
         Binding("g", "toggle_saved", "Guardar/Quitar"),
         Binding("z", "zoom", "Ampliar imagen"),
+        Binding("m", "manual", "Manual"),
+        Binding("n", "laws", "Normativa"),
         Binding("escape", "app.pop_screen", "Volver"),
     ]
 
@@ -164,6 +166,12 @@ class BrowseScreen(Screen[None]):
     def action_zoom(self) -> None:
         title = f"Pregunta {self.index + 1} de {len(self.questions)}"
         self.app.zoom_image(self.questions[self.index], title)
+
+    def action_manual(self) -> None:
+        self.app.open_manual_for(self.questions[self.index])
+
+    def action_laws(self) -> None:
+        self.app.open_laws_for(self.questions[self.index])
 
     def action_toggle_saved(self) -> None:
         saved = self.app.practice.toggle_saved(self.questions[self.index].key)

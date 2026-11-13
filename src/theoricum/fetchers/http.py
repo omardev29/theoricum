@@ -29,13 +29,20 @@ class HttpClient:
         self._last_request = time.monotonic()
 
     def _with_retries[T](
-        self, url: str, read: Callable[[object], T], *, delay: float | None = None
+        self,
+        url: str,
+        read: Callable[[object], T],
+        *,
+        delay: float | None = None,
+        headers: dict[str, str] | None = None,
     ) -> T | None:
         """Open `url` and `read` the response; None on 404/410. Retries transient errors."""
         last_error: Exception | None = None
         for attempt in range(self.retries):
             self._wait(delay)
-            request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+            request = urllib.request.Request(
+                url, headers={"User-Agent": USER_AGENT, **(headers or {})}
+            )
             try:
                 with urllib.request.urlopen(request, timeout=self.timeout) as response:
                     return read(response)
@@ -50,11 +57,15 @@ class HttpClient:
             time.sleep(2**attempt)
         raise ConnectionError(f"no se pudo descargar {url}: {last_error}")
 
-    def _open(self, url: str, *, delay: float | None = None) -> bytes | None:
-        return self._with_retries(url, lambda response: response.read(), delay=delay)
+    def _open(
+        self, url: str, *, delay: float | None = None, headers: dict[str, str] | None = None
+    ) -> bytes | None:
+        return self._with_retries(
+            url, lambda response: response.read(), delay=delay, headers=headers
+        )
 
-    def get_text(self, url: str) -> str | None:
-        body = self._open(url)
+    def get_text(self, url: str, *, headers: dict[str, str] | None = None) -> str | None:
+        body = self._open(url, headers=headers)
         return None if body is None else body.decode("utf-8", errors="replace")
 
     def exists(self, url: str) -> bool:

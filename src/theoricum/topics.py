@@ -26,10 +26,11 @@ def slugify(value: str) -> str:
 
 @dataclass(frozen=True, slots=True)
 class Topic:
-    slug: str
+    slug: str  # internal id, the one packs use (Spanish, frozen)
     name: str
     aliases: tuple[str, ...]
     pattern: re.Pattern[str] | None
+    cli: str = ""  # its name on the command line (English)
 
 
 def _keyword_regex(keyword: str) -> str:
@@ -53,7 +54,7 @@ def load_topics() -> tuple[Topic, ...]:
     for entry in tomllib.loads(raw)["topic"]:
         pattern = keyword_pattern(entry.get("keywords", []))
         aliases = tuple(slugify(a) for a in entry.get("aliases", []))
-        topics.append(Topic(entry["slug"], entry["name"], aliases, pattern))
+        topics.append(Topic(entry["slug"], entry["name"], aliases, pattern, entry["cli"]))
     return tuple(topics)
 
 
@@ -74,6 +75,35 @@ def known_topic(value: str) -> str | None:
 def resolve_topic(value: str) -> str:
     """Canonical slug for known topics; custom topics are kept as their slug."""
     return known_topic(value) or slugify(value) or FALLBACK_TOPIC
+
+
+class SpanishTopicName(ValueError):
+    """A topic was written in Spanish on the command line; `cli` is the English name to use."""
+
+    def __init__(self, value: str, cli: str) -> None:
+        super().__init__(value)
+        self.value = value
+        self.cli = cli
+
+
+def cli_name(slug: str) -> str:
+    """The English name of a topic for the command line (custom topics keep their slug)."""
+    return next((t.cli for t in load_topics() if t.slug == slug), slug)
+
+
+def topic_from_cli(value: str) -> str:
+    """The internal slug of a topic written on the command line (`signals` → `senales`).
+
+    The command line is English only: a known topic written in Spanish raises
+    `SpanishTopicName` with the English name. Other values are custom topics of the user's packs.
+    """
+    wanted = slugify(value)
+    for topic in load_topics():
+        if wanted == topic.cli:
+            return topic.slug
+    if known := known_topic(value):
+        raise SpanishTopicName(value, cli_name(known))
+    return wanted
 
 
 def topic_name(slug: str) -> str:

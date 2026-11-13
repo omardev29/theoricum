@@ -168,6 +168,8 @@ fetch revista-dgt`.)
 | `dgt topics` | Lista los temas y cuántas preguntas tiene cada uno |
 | `dgt stats` | Abre las estadísticas |
 | `dgt saved` | Abre tus preguntas guardadas |
+| `dgt manual [TEMA]` | Abre el manual de la DGT (o un tema: `8`, `signals`, `points`…) en tu visor de PDF |
+| `dgt laws [BÚSQUEDA]` | Abre la normativa del BOE, con buscador |
 | `dgt check` | Sincroniza y valida tus carpetas de preguntas sin abrir la interfaz |
 | `dgt fetch {revista-dgt,dgt-web,signals,anki} [--refresh] [--into DIR]` | Descarga preguntas (`--last N`: solo los N tests más recientes de la revista) |
 | `dgt export [-o ARCHIVO] [--no-history]` | Crea un `.zip` con tus preguntas y tu historial |
@@ -185,7 +187,8 @@ Opciones globales:
 | `--since AAAA[-MM]` | Usar solo preguntas con fecha igual o posterior |
 | `--seed N` | Repetir la misma selección de preguntas |
 
-Los temas no distinguen tildes: `--topic señales` es lo mismo que `--topic senales`.
+Los comandos y sus opciones van siempre en inglés, también los temas: `--topic signals`, `--topic
+speed`… `dgt topics` muestra el nombre que hay que escribir junto al nombre del tema en español.
 
 ### Teclas del test
 
@@ -197,9 +200,38 @@ Los temas no distinguen tildes: `--topic señales` es lo mismo que `--topic sena
 | `g` | Guardar la pregunta en «Preguntas guardadas» (o quitarla) |
 | `x` | Desactivar la pregunta para que no vuelva a salir (cuando ya ves la solución) |
 | `z` | Ver la imagen a pantalla completa |
+| `m` | Abrir el tema del manual de la DGT de esa pregunta (en el examen, después de corregir) |
+| `n` | Buscar en la normativa del BOE (en el examen, después de corregir) |
 | `r` | Tras corregir: repasar ahora las falladas |
 | `Esc` | Salir |
 | `?` | Ayuda |
+
+## Manual y normativa
+
+Para estudiar la teoría hay tres cosas, todas oficiales y gratuitas. Se descargan a tu carpeta de
+datos, no a las de preguntas:
+
+```sh
+dgt fetch manual   # «Manual del Permiso B en Lectura Fácil» de la DGT (17 MB, 17 temas + puntos)
+dgt fetch laws     # Reglamento General de Circulación, Ley de Tráfico, Reglamento de Conductores
+                   # y Reglamento de Vehículos, en su versión vigente (BOE, unos 4 MB)
+dgt manual         # abre el manual en tu visor de PDF
+dgt manual signals # abre solo el tema de las señales (también 8, speed, points…)
+dgt laws velocidad # busca en la normativa
+```
+
+- **El manual** se separa en un PDF por tema, así que cualquier visor (Linux, Windows o macOS) abre
+  directamente el tema que buscas. Conserva sus imágenes, esquemas y enlaces a los vídeos de la DGT.
+  Durante un test, `m` abre el tema de la pregunta que estás viendo.
+- **La normativa** se lee dentro de la app (menú → Normativa, o `n` durante un test), con buscador
+  sin tildes ni mayúsculas. Cada artículo aparece en la versión que está en vigor hoy, con el título
+  y el capítulo al que pertenece y las notas del BOE sobre qué norma lo cambió. Vuelve a ejecutar
+  `dgt fetch laws` de vez en cuando para tenerla al día.
+- **Las novedades**: el manual es de diciembre de 2023. En el menú → Manual (y al ejecutar
+  `dgt manual`) tienes la lista de lo que ha cambiado desde entonces: la baliza V-16, el nuevo
+  catálogo de señales, los usuarios vulnerables…
+
+Durante un examen, `m` y `n` solo funcionan después de corregir, como en el examen de verdad.
 
 ## Formato de las preguntas (`questions/`)
 
@@ -299,7 +331,9 @@ Proton Drive…) y **no lo compartas públicamente**.
   - Su aviso legal permite reproducir los textos citando la revista como fuente.
   - Prohíbe reproducir sus imágenes sin autorización por escrito.
   - `dgt fetch revista-dgt` las descarga solo para tu estudio personal y privado.
-- **Simulador oficial de la DGT**: la DGT permite el uso personal y privado de sus contenidos.
+- **Simulador oficial de la DGT y su manual del permiso B**: la DGT permite el uso personal y
+  privado de sus contenidos.
+- **Normativa (BOE)**: textos consolidados de la API de datos abiertos del BOE.
 - **Catálogo oficial de señales (BOE, RD 465/2025)**: los textos legales no tienen derechos de
   autor (art. 13 de la Ley de Propiedad Intelectual) y el BOE permite reutilizar sus contenidos
   citando la fuente. Aun así, las preguntas generadas se quedan en tu carpeta de preguntas.

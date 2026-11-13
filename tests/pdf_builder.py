@@ -140,3 +140,52 @@ def build_catalogue_pdf(pages: list[Page]) -> bytes:
     out.write(f"trailer\n<< /Size {len(objects) + 1} /Root {catalog} 0 R >>\n".encode())
     out.write(f"startxref\n{xref}\n%%EOF\n".encode())
     return out.getvalue()
+
+
+def build_text_pdf(pages: list[list[str]], bookmarks: list[tuple[str, int]] = ()) -> bytes:
+    """A PDF whose pages hold these lines of text, with top-level bookmarks (title, page index),
+    like the DGT manual («Tema 01» → its first page)."""
+    from pypdf import PdfReader, PdfWriter
+
+    objects: list[bytes] = []
+
+    def add(body: bytes) -> int:
+        objects.append(body)
+        return len(objects)
+
+    catalog = add(b"")
+    pages_obj = add(b"")
+    font = add(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>")
+    kids = []
+    for lines in pages:
+        content = "".join(_text(72, 760 - 18 * k, line) for k, line in enumerate(lines))
+        data = content.encode("latin-1")
+        stream = add(f"<< /Length {len(data)} >>\nstream\n".encode() + data + b"\nendstream")
+        kids.append(
+            add(
+                f"<< /Type /Page /Parent {pages_obj} 0 R /MediaBox [0 0 595 842] "
+                f"/Resources << /Font << /F1 {font} 0 R >> >> /Contents {stream} 0 R >>".encode()
+            )
+        )
+    objects[catalog - 1] = f"<< /Type /Catalog /Pages {pages_obj} 0 R >>".encode()
+    refs = " ".join(f"{k} 0 R" for k in kids)
+    objects[pages_obj - 1] = f"<< /Type /Pages /Kids [{refs}] /Count {len(kids)} >>".encode()
+    out = BytesIO()
+    out.write(b"%PDF-1.4\n")
+    offsets = []
+    for number, body in enumerate(objects, start=1):
+        offsets.append(out.tell())
+        out.write(f"{number} 0 obj\n".encode() + body + b"\nendobj\n")
+    xref = out.tell()
+    out.write(f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode())
+    for offset in offsets:
+        out.write(f"{offset:010d} 00000 n \n".encode())
+    out.write(f"trailer\n<< /Size {len(objects) + 1} /Root {catalog} 0 R >>\n".encode())
+    out.write(f"startxref\n{xref}\n%%EOF\n".encode())
+
+    writer = PdfWriter(clone_from=PdfReader(BytesIO(out.getvalue())))
+    for title, index in bookmarks:
+        writer.add_outline_item(title, index)
+    final = BytesIO()
+    writer.write(final)
+    return final.getvalue()
